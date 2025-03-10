@@ -1,10 +1,6 @@
 package group13.depchain;
 
-/**
- * Hello world!
- *
- */
-public class App 
+public class App
 {
     public static void main( String[] args )
     {
