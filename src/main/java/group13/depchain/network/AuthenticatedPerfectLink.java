@@ -1,21 +1,20 @@
-package group13.depchain.consensus;
+package group13.depchain.network;
 
+import java.io.IOException;
+import java.util.HashSet;
 import java.net.SocketException;
 import java.security.PrivateKey;
-
 import group13.depchain.crypto.Util;
-import group13.depchain.network.UDPListener;
-import group13.depchain.network.UDPSender;
 
-public class AuthPerfectLink {
+public class AuthenticatedPerfectLink {
 
-    private UDPSender sender;
-    private UDPListener listener;
+    private StubbornLink sp2p;
+    private HashSet<String> delivered;
     private final PrivateKey privateKey;
 
-    public AuthPerfectLink(int listen_port, PrivateKey privateKey) throws SocketException {
-        this.sender = new UDPSender();
-        this.listener = new UDPListener(listen_port);
+    public AuthenticatedPerfectLink(int listen_port, PrivateKey privateKey) throws SocketException {
+        this.sp2p = new StubbornLink(listen_port);
+        this.delivered = new HashSet<>();
         this.privateKey = privateKey;
     }
 
@@ -23,12 +22,12 @@ public class AuthPerfectLink {
         // TODO not finished
         String signature = Util.sign(msg, privateKey);
         String final_msg = msg + "::" + signature;
-        sender.send(dest_ip, dest_port, final_msg);
+        sp2p.send(dest_ip, dest_port, final_msg);
     }
 
-    public String receive() {
+    public String deliver() throws IOException {
         // TODO not finished
-        String received = listener.receive();
+        String received = sp2p.deliver();
         String[] rec_split = received.split("::");
 
         if (rec_split.length != 2) {
@@ -40,16 +39,16 @@ public class AuthPerfectLink {
         String signature = rec_split[1];
 
         // TODO get public key of sender
-        if (!Util.verify(msg, signature, )) {
-            // TODO handle this
-            return null;
+        if (/* Util.verify(msg, signature, ) && */ !delivered.contains(msg)) {
+            delivered.add(msg);
+            return msg;
         }
 
-        return msg;
+        // TODO handle this
+        return null;
     }
 
     public void close() {
-        sender.close();
-        listener.close();
+        sp2p.close();
     }
 }
