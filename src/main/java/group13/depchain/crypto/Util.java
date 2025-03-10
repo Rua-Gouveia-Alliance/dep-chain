@@ -31,6 +31,6 @@ public class Util {
         verifier.initVerify(publicKey);
         verifier.update(msg.getBytes());
 
-        return verifier.verify(Base64.getDecoder().decode(signature););
+        return verifier.verify(Base64.getDecoder().decode(signature));
     }
 }

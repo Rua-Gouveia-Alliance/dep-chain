@@ -18,7 +18,8 @@ public class UDPSender {
         InetAddress server_addr = InetAddress.getByName(dest_ip);
         byte[] msg_bytes = msg.getBytes();
 
-        DatagramPacket packet = new DatagramPacket(msg_bytes, msg_bytes.length, server_addr, dest_port);
+        DatagramPacket packet =
+                new DatagramPacket(msg_bytes, msg_bytes.length, server_addr, dest_port);
         socket.send(packet);
     }
 

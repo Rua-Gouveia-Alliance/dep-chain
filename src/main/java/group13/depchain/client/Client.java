@@ -1,3 +1,4 @@
 package group13.depchain.client;
 
-public class Client {}
+public class Client {
+}
