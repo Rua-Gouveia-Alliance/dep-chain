@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import group13.depchain.util.Message;
+import org.apache.commons.lang3.SerializationUtils;
 
 public class FairLossLink {
     private DatagramSocket recSocket;
@@ -15,22 +17,22 @@ public class FairLossLink {
         this.sendSocket = new DatagramSocket();
     }
 
-    public void send(String dest_ip, int dest_port, String msg) throws IOException {
+    public void send(String dest_ip, int dest_port, Message msg) throws IOException {
         InetAddress server_addr = InetAddress.getByName(dest_ip);
-        byte[] msg_bytes = msg.getBytes();
+        byte[] msg_bytes = SerializationUtils.serialize(msg);
 
         DatagramPacket packet =
                 new DatagramPacket(msg_bytes, msg_bytes.length, server_addr, dest_port);
         sendSocket.send(packet);
     }
 
-
-    public String deliver() throws IOException {
+    // TODO: Possible user controlled deserialization?
+    public Message deliver() throws IOException {
         byte[] received = new byte[1024];
         DatagramPacket packet = new DatagramPacket(null, received.length);
 
         recSocket.receive(packet);
-        return new String(packet.getData());
+        return SerializationUtils.deserialize(packet.getData());
     }
 
     public void close() {

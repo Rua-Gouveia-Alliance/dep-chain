@@ -2,6 +2,7 @@ package group13.depchain.network;
 
 import java.io.IOException;
 import java.net.SocketException;
+import group13.depchain.util.Message;
 
 public class StubbornLink {
     private FairLossLink flp2p;
@@ -10,7 +11,7 @@ public class StubbornLink {
         this.flp2p = new FairLossLink(port);
     }
 
-    public void send(String dest_ip, int dest_port, String msg) throws IOException {
+    public void send(String dest_ip, int dest_port, Message msg) throws IOException {
         // TODO: Improve this?
         while (true) {
             flp2p.send(dest_ip, dest_port, msg);
@@ -19,7 +20,7 @@ public class StubbornLink {
 
 
     // TODO: This isn't exactly how the algorithm is described
-    public String deliver() throws IOException {
+    public Message deliver() throws IOException {
         return flp2p.deliver();
     }
 
