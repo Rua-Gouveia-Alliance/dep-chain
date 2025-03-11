@@ -5,47 +5,60 @@ import javax.crypto.SecretKey;
 import java.util.Arrays;
 import java.net.SocketException;
 import group13.depchain.crypto.Util;
-import group13.depchain.util.Message;
+import group13.depchain.util.MessageCode;
 import group13.depchain.util.MessageId;
+import group13.depchain.util.AuthenticatedMessage;
 
 public class AuthenticatedPerfectLink {
 
     private StubbornLink sp2p;
     private HashSet<MessageId> delivered;
-    private final SecretKey key;
+    private final SecretKey[] keys;
 
-    public AuthenticatedPerfectLink(int listen_port, Integer id, SecretKey key)
+    public AuthenticatedPerfectLink(int listen_port, int id, SecretKey[] keys)
             throws SocketException {
-        this.sp2p = new StubbornLink(listen_port, id);
+        this.sp2p = new StubbornLink(listen_port);
         this.delivered = new HashSet<>();
-        this.key = key;
+        this.keys = keys;
     }
 
-    public void send(String dest_ip, int dest_port, String msg) throws Exception {
+    public void send(String dest_ip, int dest_port, String data) throws Exception {
         // TODO not finished
-        String mac = Util.mac(msg, key);
-        String final_msg = msg + "::" + mac;
-        sp2p.send(dest_ip, dest_port, final_msg);
+        int partnerId = 0; // TODO: Determinar qual o partnerId
+        String mac = Util.mac(data, this.keys[partnerId]);
+        String msg = data + "\n" + mac;
+        sp2p.send(dest_ip, dest_port, msg);
     }
 
-    public Message deliver() throws Exception {
+    public AuthenticatedMessage deliver() throws Exception {
         // TODO not finished
-        Message received = sp2p.deliver();
-        String contents = received.getMsg();
-        String[] rec_split = contents.split("::");
+        String received = sp2p.deliver();
+        String[] rec_split = received.split("\n");
 
-        if (rec_split.length < 2)
+        if (rec_split.length < 4)
             return null;
 
-        String msg = String.join("", Arrays.copyOfRange(rec_split, 0, rec_split.length - 1));
+        String data = String.join("\n", Arrays.copyOfRange(rec_split, 0, rec_split.length - 1));
         String signature = rec_split[rec_split.length - 1];
-        MessageId recId = received.getId();
+        int code, senderId, seq;
 
-        if (!Util.verifyMAC(msg, signature, this.key) || delivered.contains(recId))
+        try {
+            code = Integer.parseInt(rec_split[0]);
+            senderId = Integer.parseInt(rec_split[1]);
+            seq = Integer.parseInt(rec_split[2]);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+
+        // TODO: Confirmar que o senderId é um id que existe
+        MessageId recId = new MessageId(senderId, seq);
+        MessageCode messageCode = MessageCode.fromInt(code);
+
+        if (!Util.verifyMAC(data, signature, this.keys[senderId]) || delivered.contains(recId))
             return null;
 
         delivered.add(recId);
-        return new Message(recId, msg);
+        return new AuthenticatedMessage(data, recId, messageCode);
     }
 
     public void close() {

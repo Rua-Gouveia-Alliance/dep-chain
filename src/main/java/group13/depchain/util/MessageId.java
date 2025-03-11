@@ -4,20 +4,25 @@ import java.io.Serializable;
 
 public class MessageId implements Serializable {
 
-    private Integer seq;
-    private final Integer id;
+    private int seq;
+    private final int senderId;
 
-    public MessageId(Integer id) {
-        this.id = id;
+    public MessageId(int senderId) {
+        this.senderId = senderId;
         this.seq = 0;
     }
 
-    public Integer getSeq() {
+    public MessageId(int senderId, int seq) {
+        this.senderId = senderId;
+        this.seq = seq;
+    }
+
+    public int getSeq() {
         return this.seq;
     }
 
-    public Integer getId() {
-        return this.id;
+    public int getSenderId() {
+        return this.senderId;
     }
 
     public void next() {
@@ -33,12 +38,12 @@ public class MessageId implements Serializable {
             return true;
 
         MessageId messageId = (MessageId) other;
-        return this.id == messageId.getId() && this.seq == messageId.getSeq();
+        return this.senderId == messageId.getSenderId() && this.seq == messageId.getSeq();
     }
 
     @Override
     public int hashCode() {
         // https://stackoverflow.com/a/682617
-        return ((this.seq + this.id) * (this.seq + this.id + 1) / 2) + this.id;
+        return ((this.seq + this.senderId) * (this.seq + this.senderId + 1) / 2) + this.senderId;
     }
 }
