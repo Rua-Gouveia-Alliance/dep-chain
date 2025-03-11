@@ -10,27 +10,22 @@ import group13.depchain.util.MessageId;
 
 public class AuthenticatedPerfectLink {
 
-    private MessageId id;
     private StubbornLink sp2p;
     private HashSet<MessageId> delivered;
     private final PrivateKey privateKey;
 
     public AuthenticatedPerfectLink(int listen_port, Integer id, PrivateKey privateKey)
             throws SocketException {
-        this.id = new MessageId(id);
-        this.sp2p = new StubbornLink(listen_port);
+        this.sp2p = new StubbornLink(listen_port, id);
         this.delivered = new HashSet<>();
         this.privateKey = privateKey;
     }
 
-    public void send(String dest_ip, int dest_port, String contents) throws Exception {
+    public void send(String dest_ip, int dest_port, String msg) throws Exception {
         // TODO not finished
-        String signature = Util.sign(contents, privateKey);
-        String final_msg = contents + "::" + signature;
-
-        id.next();
-        Message msg = new Message(id, final_msg);
-        sp2p.send(dest_ip, dest_port, msg);
+        String signature = Util.sign(msg, privateKey);
+        String final_msg = msg + "::" + signature;
+        sp2p.send(dest_ip, dest_port, final_msg);
     }
 
     public String deliver() throws IOException {

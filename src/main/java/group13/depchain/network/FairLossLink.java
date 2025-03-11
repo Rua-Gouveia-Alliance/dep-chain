@@ -7,18 +7,24 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import group13.depchain.util.Message;
 import org.apache.commons.lang3.SerializationUtils;
+import group13.depchain.util.MessageId;
 
 public class FairLossLink {
+    private MessageId id;
     private DatagramSocket recSocket;
     private DatagramSocket sendSocket;
 
-    public FairLossLink(int port) throws SocketException {
+    public FairLossLink(int port, int id) throws SocketException {
+        this.id = new MessageId(id);
         this.recSocket = new DatagramSocket(port);
         this.sendSocket = new DatagramSocket();
     }
 
-    public void send(String dest_ip, int dest_port, Message msg) throws IOException {
+    public void send(String dest_ip, int dest_port, String contents) throws IOException {
+        this.id.next();
+
         InetAddress server_addr = InetAddress.getByName(dest_ip);
+        Message msg = new Message(this.id, contents);
         byte[] msg_bytes = SerializationUtils.serialize(msg);
 
         DatagramPacket packet =
