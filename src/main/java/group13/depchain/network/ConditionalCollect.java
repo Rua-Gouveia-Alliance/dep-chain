@@ -2,6 +2,7 @@ package group13.depchain.network;
 
 import javax.crypto.SecretKey;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -53,22 +54,41 @@ public class ConditionalCollect {
 
     public void deliver() throws Exception {
         Message received = ap2p.deliver();
+        MessageCode code = received.getCode();
 
-        // String[] extracted = Message.extractEnd(split, 1);
-        // String data = extracted[0];
-        // String signature = extracted[1];
-        // String message = split.length == 4 ? "" : split[3];
+        if (this.leader && code == MessageCode.DSMESSAGE) {
+            try {
+                DSMessage dsMessage = DSMessage.parseFrom(received.getMessage());
+                Message message = dsMessage.getMessage();
+                int sender = message.getSender();
+                byte[] ds = dsMessage.getDs().toByteArray();
+                if (Util.verifyDS(message.toByteArray(), ds, this.publicKeys[sender])) {
+                    this.messages[sender] = message;
+                    this.sigs[sender] = ds;
+                }
+            } catch (InvalidProtocolBufferException e) {
+                return;
+            }
+        } else if (code == MessageCode.COLLECTED) {
+            try {
+                CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
+                if (collected || countMessages() < 0 /* N - f */ || !predicate.C(this.messages))
+                    return;
 
-        // if (leader && Util.verifyDS(data, signature, publicKeys[senderId])) {
-        // messages[senderId] = message;
-        // sigs[senderId] = signature;
-        // }
+                for (int i = 0; i < this.messages.length; ++i) {
+                    Message msg = colMessage.getMessages(i);
+                    byte[] sig = colMessage.getSigs(i).toByteArray();
+                    if (msg != null && !Util.verifyDS(msg.toByteArray(), sig, this.publicKeys[i]))
+                        return;
+                }
 
-        // if (!this.collected /* && countMessages >= N - f */ && predicate.C(this.messages)) {
-        // String[] ya;
-        // }
-
-        // TODO: Not finished
+                this.collected = true;
+                /* trigger Collected */
+            } catch (Exception e) {
+                return;
+            }
+            return;
+        }
     }
 
     public Message[] getMessages() {
