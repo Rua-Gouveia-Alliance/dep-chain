@@ -1,7 +1,6 @@
 package group13.depchain.network;
 
 import javax.crypto.SecretKey;
-import java.util.Arrays;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -47,12 +46,12 @@ public class ConditionalCollect {
         AuthenticatedMessage received = ap2p.deliver();
         String contents = received.getData();
         int senderId = received.getId().getSenderId();
-        String[] rec_split = contents.split("\n");
+        String[] split = contents.split("\n");
 
-        if (rec_split.length < 4)
+        if (split.length < 4)
             return;
 
-        String[] extracted = Message.extractEnd(rec_split, 1);
+        String[] extracted = Message.extractEnd(split, 1);
         String data = extracted[0];
         String signature = extracted[1];
 
