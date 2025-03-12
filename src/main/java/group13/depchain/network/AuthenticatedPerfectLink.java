@@ -2,12 +2,12 @@ package group13.depchain.network;
 
 import java.util.HashSet;
 import javax.crypto.SecretKey;
+import com.google.protobuf.ByteString;
 import java.net.SocketException;
 import group13.depchain.crypto.Util;
-import group13.depchain.util.MessageCode;
 import group13.depchain.util.MessageId;
-import group13.depchain.util.AuthenticatedMessage;
-import group13.depchain.util.Message;
+import group13.depchain.Messages.*;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 public class AuthenticatedPerfectLink {
 
@@ -22,42 +22,40 @@ public class AuthenticatedPerfectLink {
         this.keys = keys;
     }
 
-    public void send(String dest_ip, int dest_port, String data) throws Exception {
+    public void send(String dest_ip, int dest_port, Message message) throws Exception {
         int partnerId = 0; // TODO: Determinar qual o partnerId
-        String mac = Util.mac(data, this.keys[partnerId]);
-        String msg = Message.appendEnd(data, mac);
-        sp2p.send(dest_ip, dest_port, msg);
+        ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[partnerId]));
+        MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
+
+        Message packet =
+                Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
+                        .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
+        sp2p.send(dest_ip, dest_port, packet);
     }
 
-    public AuthenticatedMessage deliver() throws Exception {
-        String received = sp2p.deliver();
-        String[] split = received.split("\n");
+    public Message deliver() throws Exception {
+        Message received = sp2p.deliver();
 
-        if (split.length < 4)
+        if (received.getCode() != MessageCode.MACMESSAGE)
             return null;
 
-        String[] extracted = Message.extractEnd(split, 1);
-        String data = extracted[0];
-        String signature = extracted[1];
-        int code, senderId, seq;
-
+        MACMessage message;
         try {
-            code = Integer.parseInt(split[0]);
-            senderId = Integer.parseInt(split[1]);
-            seq = Integer.parseInt(split[2]);
-        } catch (NumberFormatException e) {
+            message = MACMessage.parseFrom(received.getMessage());
+        } catch (InvalidProtocolBufferException e) {
             return null;
         }
 
-        // TODO: Confirmar que o senderId é um id que existe
-        MessageId recId = new MessageId(senderId, seq);
-        MessageCode messageCode = MessageCode.fromInt(code);
+        Message contents = message.getMessage();
+        // TODO: Confirmar que o senderId é um id que existe?
+        MessageId recId = new MessageId(contents.getSender(), contents.getSeq());
 
-        if (!Util.verifyMAC(data, signature, this.keys[senderId]) || delivered.contains(recId))
+        if (!Util.verifyMAC(contents.toByteArray(), message.getMac().toByteArray(),
+                this.keys[contents.getSender()]) || delivered.contains(recId))
             return null;
 
         delivered.add(recId);
-        return new AuthenticatedMessage(data, recId, messageCode);
+        return contents;
     }
 
     public void close() {

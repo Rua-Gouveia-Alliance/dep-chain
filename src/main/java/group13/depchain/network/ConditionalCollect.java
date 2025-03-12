@@ -1,32 +1,40 @@
 package group13.depchain.network;
 
 import javax.crypto.SecretKey;
+import com.google.protobuf.ByteString;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import group13.depchain.crypto.Util;
-import group13.depchain.util.AuthenticatedMessage;
-import group13.depchain.util.MessageCode;
 import group13.depchain.util.MessageId;
-import group13.depchain.util.Message;
+import group13.depchain.Messages.*;
 
 public class ConditionalCollect {
 
     private boolean collected;
-    private String[] sigs;
-    private String[] messages;
+    private byte[][] sigs;
+    private Message[] messages;
     private final boolean leader;
     private final AuthenticatedPerfectLink ap2p;
     private final PrivateKey privateKey;
     private final PublicKey[] publicKeys;
     private final OutputPredicate predicate;
 
+    private int countMessages() {
+        int result = 0;
+        for (Message m : this.messages) {
+            if (m != null)
+                ++result;
+        }
+        return result;
+    }
+
     public ConditionalCollect(int listen_port, int id, SecretKey[] keys, PrivateKey privateKey,
             PublicKey[] publicKeys, OutputPredicate predicate, int processes, boolean leader)
             throws SocketException {
         this.collected = false;
-        this.sigs = new String[processes];
-        this.messages = new String[processes];
+        this.sigs = new byte[1024][processes];
+        this.messages = new Message[processes];
         this.leader = leader;
         this.ap2p = new AuthenticatedPerfectLink(listen_port, id, keys);
         this.privateKey = privateKey;
@@ -34,36 +42,36 @@ public class ConditionalCollect {
         this.predicate = predicate;
     }
 
-    public void send(String dest_ip, int dest_port, MessageCode code, MessageId id, String data)
-            throws Exception {
-        String msg = Message.appendStart(data, code.getCode(), id.getSenderId(), id.getSeq());
-        String signature = Util.ds(msg, this.privateKey);
-        msg = Message.appendEnd(msg, signature);
-        ap2p.send(dest_ip, dest_port, msg);
+    public void send(String dest_ip, int dest_port, Message message) throws Exception {
+        ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(), this.privateKey));
+        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ds).build();
+        Message packet =
+                Message.newBuilder().setCode(MessageCode.DSMESSAGE).setSender(message.getSender())
+                        .setSeq(message.getSeq()).setMessage(dsMessage.toByteString()).build();
+        ap2p.send(dest_ip, dest_port, packet);
     }
 
     public void deliver() throws Exception {
-        AuthenticatedMessage received = ap2p.deliver();
-        String contents = received.getData();
-        int senderId = received.getId().getSenderId();
-        String[] split = contents.split("\n");
+        Message received = ap2p.deliver();
 
-        if (split.length < 4)
-            return;
+        // String[] extracted = Message.extractEnd(split, 1);
+        // String data = extracted[0];
+        // String signature = extracted[1];
+        // String message = split.length == 4 ? "" : split[3];
 
-        String[] extracted = Message.extractEnd(split, 1);
-        String data = extracted[0];
-        String signature = extracted[1];
+        // if (leader && Util.verifyDS(data, signature, publicKeys[senderId])) {
+        // messages[senderId] = message;
+        // sigs[senderId] = signature;
+        // }
 
-        if (leader && Util.verifyDS(contents, signature, publicKeys[senderId])) {
-            messages[senderId] = data;
-            sigs[senderId] = signature;
-        }
+        // if (!this.collected /* && countMessages >= N - f */ && predicate.C(this.messages)) {
+        // String[] ya;
+        // }
 
         // TODO: Not finished
     }
 
-    public String[] getMessages() {
+    public Message[] getMessages() {
         return this.messages;
     }
 

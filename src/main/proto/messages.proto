@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package group13.depchain;
+
+enum MessageCode {
+  DSMESSAGE  = 0;
+  MACMESSAGE = 1;
+  COLLECTED  = 2;
+}
+
+// All messages will be encapsulated in this
+message Message {
+  MessageCode code = 1;
+  int32 sender     = 2;
+  int32 seq        = 3;
+  bytes message    = 4;
+}
+
+message DSMessage {
+  Message message = 1;
+  bytes ds        = 2;
+}
+
+message MACMessage {
+  Message message = 1;
+  bytes mac       = 2;
+}
+
