@@ -7,7 +7,6 @@ import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import group13.depchain.crypto.Util;
-import group13.depchain.util.MessageId;
 import group13.depchain.Messages.*;
 
 public class ConditionalCollect {
@@ -66,6 +65,7 @@ public class ConditionalCollect {
                     this.messages[sender] = message;
                     this.sigs[sender] = ds;
                 }
+                // TODO: upon #(messages ) ≥ N − f ∧ C( messages ) do
             } catch (InvalidProtocolBufferException e) {
                 return;
             }
@@ -83,7 +83,7 @@ public class ConditionalCollect {
                 }
 
                 this.collected = true;
-                /* trigger Collected */
+                // TODO: trigger Collected
             } catch (Exception e) {
                 return;
             }
