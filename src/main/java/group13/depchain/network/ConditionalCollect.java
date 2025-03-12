@@ -9,6 +9,7 @@ import group13.depchain.crypto.Util;
 import group13.depchain.util.AuthenticatedMessage;
 import group13.depchain.util.MessageCode;
 import group13.depchain.util.MessageId;
+import group13.depchain.util.Message;
 
 public class ConditionalCollect {
 
@@ -36,9 +37,9 @@ public class ConditionalCollect {
 
     public void send(String dest_ip, int dest_port, MessageCode code, MessageId id, String data)
             throws Exception {
-        String msg = code.getCode() + "\n" + id.getSenderId() + "\n" + id.getSeq() + "\n" + data;
+        String msg = Message.appendStart(data, code.getCode(), id.getSenderId(), id.getSeq());
         String signature = Util.ds(msg, this.privateKey);
-        msg += "\n" + signature;
+        msg = Message.appendEnd(msg, signature);
         ap2p.send(dest_ip, dest_port, msg);
     }
 
@@ -51,13 +52,9 @@ public class ConditionalCollect {
         if (rec_split.length < 4)
             return;
 
-        String signature = rec_split[rec_split.length - 1];
-        String data;
-        if (rec_split.length > 4) {
-            data = String.join("\n", Arrays.copyOfRange(rec_split, 3, rec_split.length - 1));
-        } else {
-            data = null;
-        }
+        String[] extracted = Message.extractEnd(rec_split, 1);
+        String data = extracted[0];
+        String signature = extracted[1];
 
         if (leader && Util.verifyDS(contents, signature, publicKeys[senderId])) {
             messages[senderId] = data;
