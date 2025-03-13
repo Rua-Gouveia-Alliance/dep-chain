@@ -7,6 +7,7 @@ import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import group13.depchain.crypto.Util;
+import group13.depchain.util.MessageId;
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
@@ -54,7 +55,7 @@ public class ConditionalCollect {
         ap2p.send(process, packet);
     }
 
-    public void deliver() throws Exception {
+    public MessageId deliver(MessageId messageId) throws Exception {
         Message received = ap2p.deliver();
         MessageCode code = received.getCode();
 
@@ -68,29 +69,47 @@ public class ConditionalCollect {
                     this.messages[sender] = message;
                     this.sigs[sender] = ds;
                 }
-                // TODO: upon #(messages ) ≥ N − f ∧ C( messages ) do
+
+                if (countMessages() < this.N /* - f */ || !predicate.C(this.messages))
+                    return messageId;
+
+                CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
+                for (int i = 0; i < this.N; ++i) {
+                    colMessageBuilder.setMessages(i, this.messages[i]).setSigs(i,
+                            ByteString.copyFrom(this.sigs[i]));
+                }
+
+                CollectedMessage colMessage = colMessageBuilder.build();
+                for (int i = 0; i < this.N; ++i) {
+                    Message packet = Message.newBuilder().setCode(MessageCode.COLLECTED)
+                            .setSender(messageId.getSenderId()).setSeq(messageId.getSeq())
+                            .setMessage(colMessage.toByteString()).build();
+                    ap2p.send(i, packet);
+                    messageId.next();
+                }
             } catch (InvalidProtocolBufferException e) {
-                return;
+                return messageId;
             }
         } else if (code == MessageCode.COLLECTED) {
             try {
                 CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
-                if (collected || countMessages() < 0 /* N - f */ || !predicate.C(this.messages))
-                    return;
+                if (collected || countMessages() < this.N /* - f */ || !predicate.C(this.messages))
+                    return messageId;
 
-                for (int i = 0; i < this.messages.length; ++i) {
+                for (int i = 0; i < this.N; ++i) {
                     Message msg = colMessage.getMessages(i);
                     byte[] sig = colMessage.getSigs(i).toByteArray();
                     if (msg != null && !Util.verifyDS(msg.toByteArray(), sig, this.publicKeys[i]))
-                        return;
+                        return messageId;
                 }
 
                 this.collected = true;
-                // TODO: trigger Collected
             } catch (Exception e) {
-                return;
+                return messageId;
             }
         }
+
+        return messageId;
     }
 
     public Message[] getMessages() {
