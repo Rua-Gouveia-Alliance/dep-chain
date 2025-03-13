@@ -36,7 +36,7 @@ public class AuthenticatedPerfectLink {
     public Message deliver() throws Exception {
         Message received = sp2p.deliver();
 
-        if (received.getCode() != MessageCode.MACMESSAGE)
+        if (received == null || received.getCode() != MessageCode.MACMESSAGE)
             return null;
 
         MACMessage message;
