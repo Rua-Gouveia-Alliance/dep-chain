@@ -7,6 +7,7 @@ import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import group13.depchain.crypto.Util;
+import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
 public class ConditionalCollect {
@@ -14,6 +15,7 @@ public class ConditionalCollect {
     private boolean collected;
     private byte[][] sigs;
     private Message[] messages;
+    private final int N;
     private final boolean leader;
     private final AuthenticatedPerfectLink ap2p;
     private final PrivateKey privateKey;
@@ -30,25 +32,26 @@ public class ConditionalCollect {
     }
 
     public ConditionalCollect(int listen_port, int id, SecretKey[] keys, PrivateKey privateKey,
-            PublicKey[] publicKeys, OutputPredicate predicate, int processes, boolean leader)
-            throws SocketException {
+            PublicKey[] publicKeys, OutputPredicate predicate, int N, boolean leader,
+            ProcessAddress[] address_map) throws SocketException {
         this.collected = false;
-        this.sigs = new byte[1024][processes];
-        this.messages = new Message[processes];
+        this.sigs = new byte[1024][N];
+        this.messages = new Message[N];
+        this.N = N;
         this.leader = leader;
-        this.ap2p = new AuthenticatedPerfectLink(listen_port, id, keys);
+        this.ap2p = new AuthenticatedPerfectLink(listen_port, id, keys, address_map);
         this.privateKey = privateKey;
         this.publicKeys = publicKeys;
         this.predicate = predicate;
     }
 
-    public void send(String dest_ip, int dest_port, Message message) throws Exception {
+    public void send(int process, Message message) throws Exception {
         ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(), this.privateKey));
         DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ds).build();
         Message packet =
                 Message.newBuilder().setCode(MessageCode.DSMESSAGE).setSender(message.getSender())
                         .setSeq(message.getSeq()).setMessage(dsMessage.toByteString()).build();
-        ap2p.send(dest_ip, dest_port, packet);
+        ap2p.send(process, packet);
     }
 
     public void deliver() throws Exception {
@@ -87,7 +90,6 @@ public class ConditionalCollect {
             } catch (Exception e) {
                 return;
             }
-            return;
         }
     }
 

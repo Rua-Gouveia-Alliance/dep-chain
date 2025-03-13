@@ -6,6 +6,7 @@ import com.google.protobuf.ByteString;
 import java.net.SocketException;
 import group13.depchain.crypto.Util;
 import group13.depchain.util.MessageId;
+import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -15,22 +16,21 @@ public class AuthenticatedPerfectLink {
     private HashSet<MessageId> delivered;
     private final SecretKey[] keys;
 
-    public AuthenticatedPerfectLink(int listen_port, int id, SecretKey[] keys)
-            throws SocketException {
-        this.sp2p = new StubbornLink(listen_port);
+    public AuthenticatedPerfectLink(int listen_port, int id, SecretKey[] keys,
+            ProcessAddress[] address_map) throws SocketException {
+        this.sp2p = new StubbornLink(listen_port, address_map);
         this.delivered = new HashSet<>();
         this.keys = keys;
     }
 
-    public void send(String dest_ip, int dest_port, Message message) throws Exception {
-        int partnerId = 0; // TODO: Determinar qual o partnerId
-        ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[partnerId]));
+    public void send(int process, Message message) throws Exception {
+        ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
         MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
 
         Message packet =
                 Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
                         .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
-        sp2p.send(dest_ip, dest_port, packet);
+        sp2p.send(process, packet);
     }
 
     public Message deliver() throws Exception {

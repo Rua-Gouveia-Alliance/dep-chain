@@ -2,19 +2,20 @@ package group13.depchain.network;
 
 import java.io.IOException;
 import java.net.SocketException;
+import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
 public class StubbornLink {
     private FairLossLink flp2p;
 
-    public StubbornLink(int port) throws SocketException {
-        this.flp2p = new FairLossLink(port);
+    public StubbornLink(int port, ProcessAddress[] address_map) throws SocketException {
+        this.flp2p = new FairLossLink(port, address_map);
     }
 
-    public void send(String dest_ip, int dest_port, Message message) throws IOException {
+    public void send(int process, Message message) throws IOException {
         // TODO: Improve this?
         while (true) {
-            flp2p.send(dest_ip, dest_port, message);
+            flp2p.send(process, message);
         }
     }
 

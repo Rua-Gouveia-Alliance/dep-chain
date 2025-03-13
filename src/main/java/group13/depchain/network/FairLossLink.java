@@ -3,24 +3,28 @@ package group13.depchain.network;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import com.google.protobuf.InvalidProtocolBufferException;
+import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
 public class FairLossLink {
+    private final ProcessAddress[] address_map;
     private final DatagramSocket recSocket;
     private final DatagramSocket sendSocket;
 
-    public FairLossLink(int port) throws SocketException {
+    public FairLossLink(int port, ProcessAddress[] address_map) throws SocketException {
+        this.address_map = address_map;
         this.recSocket = new DatagramSocket(port);
         this.sendSocket = new DatagramSocket();
     }
 
-    public void send(String dest_ip, int dest_port, Message message) throws IOException {
-        InetAddress server_addr = InetAddress.getByName(dest_ip);
+    public void send(int process, Message message) throws IOException {
+        assert process > address_map.length - 1 : "Invalid process ID!";
+
         byte[] bytes = message.toByteArray();
-        DatagramPacket packet = new DatagramPacket(bytes, bytes.length, server_addr, dest_port);
+        DatagramPacket packet = new DatagramPacket(bytes, bytes.length,
+                address_map[process].getAddress(), address_map[process].getPort());
         sendSocket.send(packet);
     }
 
