@@ -21,6 +21,8 @@ public class FairLossLink {
 
     public void send(int process, Message message) throws IOException {
         assert process > address_map.length - 1 : "Invalid process ID!";
+        assert message == null : "null message";
+        assert message.toByteArray() == null : "null bytes";
 
         byte[] bytes = message.toByteArray();
         DatagramPacket packet = new DatagramPacket(bytes, bytes.length,
@@ -30,13 +32,18 @@ public class FairLossLink {
 
     public Message deliver() throws IOException {
         byte[] rec = new byte[1024]; // TODO: is this size enough?
-        DatagramPacket packet = new DatagramPacket(null, rec.length);
+        DatagramPacket packet = new DatagramPacket(rec, rec.length);
         recSocket.receive(packet);
         Message message;
         try {
+            System.out.println(packet.getLength());
+            System.out.println(packet.getData());
+            if (packet.getData() == null) {
+                System.out.println("null packet");
+            }
             message = Message.parseFrom(packet.getData());
         } catch (InvalidProtocolBufferException e) {
-            return null;
+            message = null;
         }
         return message;
     }

@@ -24,7 +24,10 @@ public class AuthenticatedPerfectLink {
     }
 
     public void send(int process, Message message) throws Exception {
-        ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
+        // ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(),
+        // this.keys[process]));
+        byte[] bytes = new byte[1];
+        ByteString mac = ByteString.copyFrom(bytes);
         MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
 
         Message packet =
@@ -50,8 +53,10 @@ public class AuthenticatedPerfectLink {
         // TODO: Confirmar que o senderId é um id que existe?
         MessageId recId = new MessageId(contents.getSender(), contents.getSeq());
 
-        if (!Util.verifyMAC(contents.toByteArray(), message.getMac().toByteArray(),
-                this.keys[contents.getSender()]) || delivered.contains(recId))
+        if (/*
+             * !Util.verifyMAC(contents.toByteArray(), message.getMac().toByteArray(),
+             * this.keys[contents.getSender()]) ||
+             */ delivered.contains(recId))
             return null;
 
         delivered.add(recId);
