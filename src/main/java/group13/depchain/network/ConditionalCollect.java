@@ -57,8 +57,10 @@ public class ConditionalCollect {
 
     public MessageId deliver(MessageId messageId) throws Exception {
         Message received = ap2p.deliver();
-        MessageCode code = received.getCode();
+        if (received == null)
+            return messageId;
 
+        MessageCode code = received.getCode();
         if (this.leader && code == MessageCode.DSMESSAGE) {
             try {
                 DSMessage dsMessage = DSMessage.parseFrom(received.getMessage());
