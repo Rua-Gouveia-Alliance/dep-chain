@@ -3,6 +3,8 @@ package group13.depchain.network;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
+
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
@@ -11,6 +13,7 @@ public class StubbornLink {
     private class ConcurrentSend extends Thread {
         private final int process;
         private final Message message;
+        private boolean end = false;
 
         public ConcurrentSend(int process, Message message) {
             this.process = process;
@@ -20,13 +23,17 @@ public class StubbornLink {
         @Override
         public void run() {
             // TODO: Improve this?
-            while (true) {
+            while (!this.end) {
                 try {
                     flp2p.send(process, message);
                 } catch (IOException e) {
                     System.out.println("flp2p send failed");
                 }
             }
+        }
+
+        public void end() {
+            this.end = true;
         }
     }
 
@@ -49,8 +56,14 @@ public class StubbornLink {
     }
 
     public void close() {
-        for (ConcurrentSend thread : threads)
-            thread.interrupt();
+        for (ConcurrentSend thread : threads) {
+            thread.end();
+            try {
+                thread.join();
+            } catch (InterruptedException e) {
+                // TODO better handle
+            }
+        }
         flp2p.close();
     }
 }

@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
+import java.util.Arrays;
+
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
@@ -21,8 +23,6 @@ public class FairLossLink {
 
     public void send(int process, Message message) throws IOException {
         assert process > address_map.length - 1 : "Invalid process ID!";
-        assert message == null : "null message";
-        assert message.toByteArray() == null : "null bytes";
 
         byte[] bytes = message.toByteArray();
         DatagramPacket packet = new DatagramPacket(bytes, bytes.length,
@@ -34,14 +34,11 @@ public class FairLossLink {
         byte[] rec = new byte[1024]; // TODO: is this size enough?
         DatagramPacket packet = new DatagramPacket(rec, rec.length);
         recSocket.receive(packet);
+
+        byte[] data = Arrays.copyOf(packet.getData(), packet.getLength());
         Message message;
         try {
-            System.out.println(packet.getLength());
-            System.out.println(packet.getData());
-            if (packet.getData() == null) {
-                System.out.println("null packet");
-            }
-            message = Message.parseFrom(packet.getData());
+            message = Message.parseFrom(data);
         } catch (InvalidProtocolBufferException e) {
             message = null;
         }

@@ -1,5 +1,7 @@
 package group13.depchain;
 
+import java.util.List;
+
 import group13.depchain.Messages.DummyMessage;
 import group13.depchain.Messages.Message;
 import group13.depchain.Messages.MessageCode;
@@ -17,28 +19,24 @@ public class App {
             map[i] = new ProcessAddress("localhost", 5000 + i);
         }
 
-        ConditionalCollect cc =
-                new ConditionalCollect(5000 + pid, pid, null, null, null, null, N, pid == 0, map);
+        ConditionalCollect cc = new ConditionalCollect(5000 + pid, pid, null, null, null, null, N, pid == 0, map);
 
         DummyMessage dummy = DummyMessage.newBuilder().build();
-        Message msg =
-                Message.newBuilder().setCode(MessageCode.DSMESSAGE).setMessage(dummy.toByteString())
-                        .setSender(id.getSenderId()).setSeq(id.getSeq()).build();
+        Message msg = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setMessage(dummy.toByteString())
+                .setSender(id.getSenderId()).setSeq(id.getSeq()).build();
+        id.next();
 
         cc.send(0, msg);
         while (!cc.getCollected())
             id = cc.deliver(id);
 
-        Message[] received = cc.getMessages();
+        cc.close();
+
+        List<Message> received = cc.getMessages();
         for (int i = 0; i < N; ++i) {
-            if (received[i] == null) {
-                System.out.println(i + "- null");
-            } else {
-                System.out.println(i + "- { sender: " + received[i].getSender() + ", seq: "
-                        + received[i].getSeq() + "}");
-            }
+            System.out.println(i + "- { sender: " + received.get(i).getSender() + ", seq: "
+                    + received.get(i).getSeq() + "}");
         }
 
-        cc.close();
     }
 }
