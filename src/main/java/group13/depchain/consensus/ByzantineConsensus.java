@@ -10,6 +10,7 @@ import java.security.PrivateKey;
 import group13.depchain.client.Client;
 import group13.depchain.crypto.Util;
 import group13.depchain.network.AuthenticatedPerfectLink;
+import group13.depchain.network.ConditionalCollect;
 import group13.depchain.Messages.*;
 import group13.depchain.util.MessageId;
 

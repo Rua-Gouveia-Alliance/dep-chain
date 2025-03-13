@@ -3,10 +3,11 @@ syntax = "proto3";
 package group13.depchain;
 
 enum MessageCode {
-  NULL = 0;
+  NULL       = 0;
   DSMESSAGE  = 1;
   MACMESSAGE = 2;
   COLLECTED  = 3;
+  READ       = 4;
 }
 
 // All messages will be encapsulated in this
@@ -18,6 +19,9 @@ message Message {
 }
 
 message DummyMessage {
+}
+
+message ReadMessage {
 }
 
 message DSMessage {
