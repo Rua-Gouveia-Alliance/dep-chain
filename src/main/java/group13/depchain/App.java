@@ -8,7 +8,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
-import group13.depchain.Messages.DummyMessage;
+import com.google.protobuf.ByteString;
+
 import group13.depchain.Messages.Message;
 import group13.depchain.Messages.MessageCode;
 import group13.depchain.crypto.KeyManager;
@@ -36,9 +37,9 @@ public class App {
         OutputPredicate op = (msgs) -> true;
         ConditionalCollect cc = new ConditionalCollect(5000 + pid, pid, Ks, KP, KUs, op, N, pid == 0, map);
 
-        DummyMessage dummy = DummyMessage.newBuilder().build();
-        Message msg = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setMessage(dummy.toByteString())
-                .setSender(id.getSenderId()).setSeq(id.getSeq()).build();
+        Message msg = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
+                .setMessage(ByteString.copyFrom(new byte[0])).setSender(id.getSenderId())
+                .setSeq(id.getSeq()).build();
         id.next();
 
         cc.send(0, msg);
