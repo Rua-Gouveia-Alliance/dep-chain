@@ -21,8 +21,8 @@ public class ByzantineConsensusTest {
         int leaderId = 0;
         int ets = 0;
         EpochState prevState = new EpochState();
-        int ccPort = 5000;
-        int alPort = 6000;
+        int ccPort = 10000;
+        int alPort = 11000;
 
         ProcessAddress[] ccMap = new ProcessAddress[N];
         ProcessAddress[] alMap = new ProcessAddress[N];
@@ -53,8 +53,8 @@ public class ByzantineConsensusTest {
         int leaderId = 0;
         int ets = 0;
         EpochState prevState = new EpochState();
-        int ccPort = 5000;
-        int alPort = 6000;
+        int ccPort = 12000;
+        int alPort = 13000;
 
         ProcessAddress[] ccMap = new ProcessAddress[N];
         ProcessAddress[] alMap = new ProcessAddress[N];

@@ -20,12 +20,12 @@ public class AuthenticatedPerfectLinkTest {
     @Test
     public void testBasicMessageDelivery() throws Exception {
         ProcessAddress[] addressMap = new ProcessAddress[1];
-        addressMap[0] = new ProcessAddress("localhost", 5000);
+        addressMap[0] = new ProcessAddress("localhost", 5500);
 
         SecretKey[] keys = new SecretKey[1];
         keys[0] = KeyManager.loadSecretKey(Paths.get("./keys", "k_0_0"));
 
-        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5000, 0, keys, addressMap);
+        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5500, 0, keys, addressMap);
 
         Message message = Message.newBuilder()
                 .setCode(MessageCode.READ)
@@ -44,12 +44,12 @@ public class AuthenticatedPerfectLinkTest {
     @Test
     public void testMessageIntegrity() throws Exception {
         ProcessAddress[] addressMap = new ProcessAddress[1];
-        addressMap[0] = new ProcessAddress("localhost", 5000);
+        addressMap[0] = new ProcessAddress("localhost", 5600);
 
         SecretKey[] keys = new SecretKey[1];
         keys[0] = KeyManager.loadSecretKey(Paths.get("./keys", "k_0_0"));
 
-        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5000, 0, keys, addressMap);
+        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5600, 0, keys, addressMap);
 
         Message message = Message.newBuilder()
                 .setCode(MessageCode.READ)
@@ -72,12 +72,12 @@ public class AuthenticatedPerfectLinkTest {
     @Test
     public void testDuplicateMessageDetection() throws Exception {
         ProcessAddress[] addressMap = new ProcessAddress[1];
-        addressMap[0] = new ProcessAddress("localhost", 5000);
+        addressMap[0] = new ProcessAddress("localhost", 5700);
 
         SecretKey[] keys = new SecretKey[1];
         keys[0] = KeyManager.loadSecretKey(Paths.get("./keys", "k_0_0"));
 
-        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5000, 0, keys, addressMap);
+        AuthenticatedPerfectLink link = new AuthenticatedPerfectLink(5700, 0, keys, addressMap);
 
         Message message = Message.newBuilder()
                 .setCode(MessageCode.READ)

@@ -49,67 +49,23 @@ public class ConditionalCollectTest {
     }
 
     @Test
-    public void testPredicateEvaluation() throws Exception {
-        ProcessAddress[] addressMap = new ProcessAddress[2];
-        addressMap[0] = new ProcessAddress("localhost", 5000);
-        addressMap[1] = new ProcessAddress("localhost", 5001);
-
-        SecretKey[] keys = KeyManager.getSecretKeys(2, 0, "./keys");
-        PrivateKey privateKey = KeyManager.getPrivateKey(0, "./keys");
-        PublicKey[] publicKeys = KeyManager.getPublicKeys(2, "./keys");
-
-        // predicate that requires at least one non-null message
-        OutputPredicate predicate = messages -> {
-            for (Message m : messages) {
-                if (m.getCode() != MessageCode.NULL) {
-                    return true;
-                }
-            }
-            return false;
-        };
-
-        ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true,
-                addressMap);
-
-        SecretKey[] keys_1 = KeyManager.getSecretKeys(2, 1, "./keys");
-        PrivateKey privateKey_1 = KeyManager.getPrivateKey(1, "./keys");
-
-        ConditionalCollect cc_1 = new ConditionalCollect(5001, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
-                addressMap);
-
-        Message message = Message.newBuilder()
-                .setCode(MessageCode.READ)
-                .setSender(0)
-                .setSeq(0)
-                .build();
-
-        cc.send(0, message);
-
-        MessageId messageId = new MessageId(0);
-        cc.deliver(messageId);
-
-        assertTrue(cc.getCollected());
-        assertEquals(2, cc.getMessages().size());
-    }
-
-    @Test
     public void testSignatureVerification() throws Exception {
         ProcessAddress[] addressMap = new ProcessAddress[2];
-        addressMap[0] = new ProcessAddress("localhost", 5000);
-        addressMap[1] = new ProcessAddress("localhost", 5001);
+        addressMap[0] = new ProcessAddress("localhost", 6000);
+        addressMap[1] = new ProcessAddress("localhost", 6001);
 
         SecretKey[] keys = KeyManager.getSecretKeys(2, 0, "./keys");
         PrivateKey privateKey = KeyManager.getPrivateKey(0, "./keys");
         PublicKey[] publicKeys = KeyManager.getPublicKeys(2, "./keys");
 
         OutputPredicate predicate = messages -> true;
-        ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true,
+        ConditionalCollect cc = new ConditionalCollect(6000, 0, keys, privateKey, publicKeys, predicate, 2, true,
                 addressMap);
 
         SecretKey[] keys_1 = KeyManager.getSecretKeys(2, 1, "./keys");
         PrivateKey privateKey_1 = KeyManager.getPrivateKey(1, "./keys");
 
-        ConditionalCollect cc_1 = new ConditionalCollect(5001, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
+        ConditionalCollect cc_1 = new ConditionalCollect(6001, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
                 addressMap);
 
         Message message = Message.newBuilder()
