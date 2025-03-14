@@ -305,4 +305,9 @@ public class ByzantineConsensus {
     public String getDecided() {
         return this.decided;
     }
+
+    public void close() {
+        this.cc.close();
+        this.al.close();
+    }
 }
