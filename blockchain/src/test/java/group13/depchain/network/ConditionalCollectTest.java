@@ -8,7 +8,6 @@ import group13.depchain.Messages.*;
 import static org.junit.Assert.*;
 import org.junit.Test;
 import javax.crypto.SecretKey;
-import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -26,6 +25,12 @@ public class ConditionalCollectTest {
 
         OutputPredicate predicate = messages -> true;
         ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true,
+                addressMap);
+
+        SecretKey[] keys_1 = KeyManager.getSecretKeys(2, 1, "./keys");
+        PrivateKey privateKey_1 = KeyManager.getPrivateKey(1, "./keys");
+
+        ConditionalCollect cc_1 = new ConditionalCollect(5000, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
                 addressMap);
 
         Message message = Message.newBuilder()
@@ -66,6 +71,12 @@ public class ConditionalCollectTest {
         ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true,
                 addressMap);
 
+        SecretKey[] keys_1 = KeyManager.getSecretKeys(2, 1, "./keys");
+        PrivateKey privateKey_1 = KeyManager.getPrivateKey(1, "./keys");
+
+        ConditionalCollect cc_1 = new ConditionalCollect(5000, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
+                addressMap);
+
         Message message = Message.newBuilder()
                 .setCode(MessageCode.READ)
                 .setSender(0)
@@ -92,7 +103,14 @@ public class ConditionalCollectTest {
         PublicKey[] publicKeys = KeyManager.getPublicKeys(2, "./keys");
 
         OutputPredicate predicate = messages -> true;
-        ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true, addressMap);
+        ConditionalCollect cc = new ConditionalCollect(5000, 0, keys, privateKey, publicKeys, predicate, 2, true,
+                addressMap);
+
+        SecretKey[] keys_1 = KeyManager.getSecretKeys(2, 1, "./keys");
+        PrivateKey privateKey_1 = KeyManager.getPrivateKey(1, "./keys");
+
+        ConditionalCollect cc_1 = new ConditionalCollect(5000, 1, keys_1, privateKey_1, publicKeys, predicate, 2, true,
+                addressMap);
 
         Message message = Message.newBuilder()
                 .setCode(MessageCode.READ)
@@ -100,12 +118,12 @@ public class ConditionalCollectTest {
                 .setSeq(0)
                 .build();
 
-        cc.send(0, message);
-
         // simulate a message with an invalid signature
         Message invalidMessage = Message.newBuilder(message)
                 .setSeq(1)
                 .build();
+
+        cc.send(0, invalidMessage);
 
         MessageId messageId = new MessageId(0);
         cc.deliver(messageId);

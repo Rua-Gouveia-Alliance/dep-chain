@@ -1,14 +1,19 @@
 package group13.depchain.network;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
+import java.nio.file.Paths;
+
+import javax.crypto.SecretKey;
+
+import org.junit.Test;
+
+import group13.depchain.Messages.Message;
+import group13.depchain.Messages.MessageCode;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.util.ProcessAddress;
-import group13.depchain.Messages.*;
-
-import static org.junit.Assert.*;
-import org.junit.Test;
-import javax.crypto.SecretKey;
-import java.net.SocketException;
-import java.nio.file.Paths;
 
 public class AuthenticatedPerfectLinkTest {
 
@@ -52,12 +57,13 @@ public class AuthenticatedPerfectLinkTest {
                 .setSeq(0)
                 .build();
 
-        link.send(0, message);
 
         // simulate tampering with the message
         Message tamperedMessage = Message.newBuilder(message)
                 .setSeq(6)
                 .build();
+
+        link.send(0, tamperedMessage);
 
         Message received = link.deliver();
         assertNull(received); // tampered message should be rejected
@@ -87,5 +93,4 @@ public class AuthenticatedPerfectLinkTest {
         Message received2 = link.deliver();
         assertNull(received2); // duplicate message should be ignored
     }
-
 }

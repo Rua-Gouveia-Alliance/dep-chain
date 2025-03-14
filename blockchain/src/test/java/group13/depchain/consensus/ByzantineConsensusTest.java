@@ -1,14 +1,17 @@
 package group13.depchain.consensus;
 
-import group13.depchain.util.ProcessAddress;
-import group13.depchain.crypto.KeyManager;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import static org.junit.Assert.*;
-import org.junit.Test;
-import javax.crypto.SecretKey;
-import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+
+import javax.crypto.SecretKey;
+
+import org.junit.Test;
+
+import group13.depchain.crypto.KeyManager;
+import group13.depchain.util.ProcessAddress;
 
 public class ByzantineConsensusTest {
 
@@ -20,9 +23,6 @@ public class ByzantineConsensusTest {
         EpochState prevState = new EpochState();
         int ccPort = 5000;
         int alPort = 6000;
-        SecretKey[] keys = KeyManager.getSecretKeys(N, 0, "./keys");
-        PrivateKey privateKey = KeyManager.getPrivateKey(0, "./keys");
-        PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
 
         ProcessAddress[] ccMap = new ProcessAddress[N];
         ProcessAddress[] alMap = new ProcessAddress[N];
@@ -31,13 +31,20 @@ public class ByzantineConsensusTest {
             alMap[i] = new ProcessAddress("localhost", alPort + i);
         }
 
-        ByzantineConsensus consensus = new ByzantineConsensus(0, leaderId, N, ets, prevState, ccPort, alPort, keys,
-                privateKey, publicKeys, ccMap, alMap);
+        ByzantineConsensus[] consensus = new ByzantineConsensus[N];
+        for (int i = 0; i < N; i++) {
+            SecretKey[] keys = KeyManager.getSecretKeys(N, i, "./keys");
+            PrivateKey privateKey = KeyManager.getPrivateKey(i, "./keys");
+            PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
+
+            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort, alPort, keys,
+                    privateKey, publicKeys, ccMap, alMap);
+        }
 
         String proposedValue = "testValue";
-        consensus.run(proposedValue);
+        consensus[0].run(proposedValue);
 
-        assertEquals(proposedValue, consensus.getDecided());
+        assertEquals(proposedValue, consensus[0].getDecided());
     }
 
     @Test
@@ -48,9 +55,6 @@ public class ByzantineConsensusTest {
         EpochState prevState = new EpochState();
         int ccPort = 5000;
         int alPort = 6000;
-        SecretKey[] keys = KeyManager.getSecretKeys(N, 0, "./keys");
-        PrivateKey privateKey = KeyManager.getPrivateKey(0, "./keys");
-        PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
 
         ProcessAddress[] ccMap = new ProcessAddress[N];
         ProcessAddress[] alMap = new ProcessAddress[N];
@@ -59,15 +63,23 @@ public class ByzantineConsensusTest {
             alMap[i] = new ProcessAddress("localhost", alPort + i);
         }
 
-        ByzantineConsensus consensus = new ByzantineConsensus(0, leaderId, N, ets, prevState, ccPort, alPort, keys,
-                privateKey, publicKeys, ccMap, alMap);
+        ByzantineConsensus[] consensus = new ByzantineConsensus[N];
+        for (int i = 0; i < N; i++) {
+            SecretKey[] keys = KeyManager.getSecretKeys(N, i, "./keys");
+            PrivateKey privateKey = KeyManager.getPrivateKey(i, "./keys");
+            PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
+
+            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort, alPort, keys,
+                    privateKey, publicKeys, ccMap, alMap);
+        }
 
         String proposedValue1 = "testValue1";
         String proposedValue2 = "testValue2";
 
-        consensus.run(proposedValue1);
-        consensus.run(proposedValue2);
+        consensus[0].run(proposedValue1);
+        consensus[0].run(proposedValue2);
 
-        assertTrue(consensus.getDecided().equals(proposedValue1) || consensus.getDecided().equals(proposedValue2));
+        assertTrue(
+                consensus[0].getDecided().equals(proposedValue1) || consensus[0].getDecided().equals(proposedValue2));
     }
 }
