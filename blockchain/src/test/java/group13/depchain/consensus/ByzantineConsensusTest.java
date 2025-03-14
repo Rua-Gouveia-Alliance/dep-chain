@@ -37,7 +37,7 @@ public class ByzantineConsensusTest {
             PrivateKey privateKey = KeyManager.getPrivateKey(i, "./keys");
             PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
 
-            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort, alPort, keys,
+            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort + i, alPort + i, keys,
                     privateKey, publicKeys, ccMap, alMap);
         }
 
@@ -69,7 +69,7 @@ public class ByzantineConsensusTest {
             PrivateKey privateKey = KeyManager.getPrivateKey(i, "./keys");
             PublicKey[] publicKeys = KeyManager.getPublicKeys(N, "./keys");
 
-            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort, alPort, keys,
+            consensus[i] = new ByzantineConsensus(i, leaderId, N, ets, prevState, ccPort + i, alPort + i, keys,
                     privateKey, publicKeys, ccMap, alMap);
         }
 
