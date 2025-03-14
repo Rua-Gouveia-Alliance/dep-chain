@@ -13,17 +13,6 @@ import java.security.Signature;
 
 public class Util {
 
-    public static KeyPair newKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
-        return keyPairGenerator.generateKeyPair();
-    }
-
-    public static SecretKey newSecretKey() throws Exception {
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-        keyGenerator.init(256);
-        return keyGenerator.generateKey();
-    }
-
     public static byte[] mac(byte[] msg, SecretKey key) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");
         mac.init(key);

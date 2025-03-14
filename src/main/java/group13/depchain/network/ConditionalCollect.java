@@ -54,8 +54,8 @@ public class ConditionalCollect {
     }
 
     public void send(int process, Message message) throws Exception {
-        // ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(),
-        // this.privateKey));
+        ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(),
+                this.privateKey));
         byte[] bytes = new byte[1];
         ByteString ds = ByteString.copyFrom(bytes);
         DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ds).build();
@@ -77,12 +77,12 @@ public class ConditionalCollect {
                 Message message = dsMessage.getMessage();
                 int sender = message.getSender();
                 byte[] ds = dsMessage.getDs().toByteArray();
-                if (/* Util.verifyDS(message.toByteArray(), ds, this.publicKeys[sender]) */ true) {
+                if (Util.verifyDS(message.toByteArray(), ds, this.publicKeys[sender])) {
                     this.messages.set(sender, message);
                     this.sigs[sender] = ds;
                 }
 
-                if (countMessages(this.messages) < this.N - 2 /* - f || !predicate.C(this.messages) */ )
+                if (countMessages(this.messages) < this.N - this.f || !predicate.C(this.messages))
                     return messageId;
 
                 CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
@@ -105,19 +105,17 @@ public class ConditionalCollect {
         } else if (code == MessageCode.COLLECTED) {
             try {
                 CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
-                if (collected || countMessages(colMessage.getMessagesList()) < this.N - 2/*
-                                                                                          * - f ||
-                                                                                          * !predicate.C(this.messages)
-                                                                                          */)
+                if (collected || countMessages(colMessage.getMessagesList()) < this.N - f
+                        || !predicate.C(this.messages))
                     return messageId;
 
-                // for (int i = 0; i < this.N; ++i) {
-                // Message msg = colMessage.getMessages(i);
-                // byte[] sig = colMessage.getSigs(i).toByteArray();
-                // if (msg != null && !Util.verifyDS(msg.toByteArray(), sig,
-                // this.publicKeys[i]))
-                // return messageId;
-                // }
+                for (int i = 0; i < this.N; ++i) {
+                Message msg = colMessage.getMessages(i);
+                byte[] sig = colMessage.getSigs(i).toByteArray();
+                if (msg != null && !Util.verifyDS(msg.toByteArray(), sig,
+                this.publicKeys[i]))
+                 return messageId;
+                 }
 
                 this.messages = colMessage.getMessagesList();
                 for (int i = 0; i < this.N; i++) {
