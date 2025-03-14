@@ -16,7 +16,8 @@ public class App {
         BlockchainMember member = new BlockchainMember(id, N, decided, pending);
         Thread memberThread = new Thread(member);
 
-        clientManagerThread.start();
+        if (id == 0)
+            clientManagerThread.start();
         memberThread.start();
     }
 }
