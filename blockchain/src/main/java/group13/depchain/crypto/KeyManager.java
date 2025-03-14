@@ -17,7 +17,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class KeyManager {
 
-    private static void newKeyPair(Path file_ku, Path file_kp) throws Exception {
+    public static void newKeyPair(Path file_ku, Path file_kp) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
@@ -28,7 +28,7 @@ public class KeyManager {
         Files.write(file_kp, privateKey.getBytes());
     }
 
-    private static void newSecretKey(Path file) throws Exception {
+    public static void newSecretKey(Path file) throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
         keyGenerator.init(256);
         SecretKey secretKey = keyGenerator.generateKey();
@@ -37,21 +37,21 @@ public class KeyManager {
         Files.write(file, encodedKey.getBytes());
     }
 
-    private static PrivateKey loadPrivateKey(Path file) throws Exception {
+    public static PrivateKey loadPrivateKey(Path file) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519");
         return keyFactory.generatePrivate(spec);
     }
 
-    private static PublicKey loadPublicKey(Path file) throws Exception {
+    public static PublicKey loadPublicKey(Path file) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("Ed25519");
         return keyFactory.generatePublic(spec);
     }
 
-    private static SecretKey loadSecretKey(Path file) throws Exception {
+    public static SecretKey loadSecretKey(Path file) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
