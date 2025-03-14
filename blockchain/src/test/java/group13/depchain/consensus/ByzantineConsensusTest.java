@@ -1,5 +1,8 @@
 package group13.depchain.consensus;
 
+import group13.depchain.util.ProcessAddress;
+import group13.depchain.crypto.KeyManager;
+
 import static org.junit.Assert.*;
 import org.junit.Test;
 import javax.crypto.SecretKey;

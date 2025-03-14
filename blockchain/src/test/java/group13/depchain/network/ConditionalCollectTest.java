@@ -1,5 +1,10 @@
 package group13.depchain.network;
 
+import group13.depchain.util.MessageId;
+import group13.depchain.util.ProcessAddress;
+import group13.depchain.crypto.KeyManager;
+import group13.depchain.Messages.*;
+
 import static org.junit.Assert.*;
 import org.junit.Test;
 import javax.crypto.SecretKey;
