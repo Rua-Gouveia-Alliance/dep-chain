@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package group13.depchain;
+
+message Request {
+  string val = 1;
+}
+
+message Response {
+  repeated string entries = 1;
+}

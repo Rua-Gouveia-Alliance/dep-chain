@@ -4,13 +4,17 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.ArrayList;
 import javax.crypto.SecretKey;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.util.ProcessAddress;
+import group13.depchain.Client.*;
 
 public class BlockchainMember {
+    private ArrayList<String> decided = new ArrayList<>();
+
     public static void main(String[] args) throws Exception {
         int pid = Integer.valueOf(args[0]), N = 6;
 
