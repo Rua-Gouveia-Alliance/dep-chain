@@ -24,8 +24,10 @@ public class App {
         MessageId id = new MessageId(pid);
         ProcessAddress[] map = new ProcessAddress[N];
 
-        if (!Files.exists(Paths.get("./keys")))
+        if (!Files.exists(Paths.get("./keys"))) {
             Files.createDirectories(Paths.get("./keys"));
+            KeyManager.generateKeys(N, "./keys");
+        }
         PrivateKey KP = KeyManager.getPrivateKey(pid, "./keys");
         PublicKey[] KUs = KeyManager.getPublicKeys(N, "./keys");
         SecretKey[] Ks = KeyManager.getSecretKeys(N, pid, "./keys");
