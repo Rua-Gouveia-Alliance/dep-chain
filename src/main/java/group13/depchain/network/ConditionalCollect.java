@@ -57,8 +57,6 @@ public class ConditionalCollect {
     public void send(int process, Message message) throws Exception {
         ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(),
                 this.privateKey));
-        byte[] bytes = new byte[1];
-        ByteString ds = ByteString.copyFrom(bytes);
         DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ds).build();
         Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setSender(message.getSender())
                 .setSeq(message.getSeq()).setMessage(dsMessage.toByteString()).build();
