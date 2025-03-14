@@ -21,7 +21,6 @@ public class StubbornLink {
 
         @Override
         public void run() {
-            // TODO: Improve this?
             while (!this.end) {
                 try {
                     flp2p.send(process, message);
