@@ -27,5 +27,12 @@ public class Epochstate {
         return this.writeset;
     }
 
+    public void removePair(Pair<Integer,String> toRemove) {
+        this.writeset.remove(toRemove);
+    }
+
+    public void addPair(Pair<Integer,String> toAdd) {
+        this.writeset.add(toAdd);
+    }
 
 }

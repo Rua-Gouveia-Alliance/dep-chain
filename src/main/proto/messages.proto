@@ -8,6 +8,7 @@ enum MessageCode {
   MACMESSAGE = 2;
   COLLECTED  = 3;
   READ       = 4;
+  WRITE      = 5;
 }
 
 // All messages will be encapsulated in this

@@ -12,6 +12,7 @@ import com.google.protobuf.ByteString;
 
 import group13.depchain.Messages.Message;
 import group13.depchain.Messages.MessageCode;
+import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
@@ -23,6 +24,7 @@ public class App {
         int pid = Integer.valueOf(args[0]), N = 6;
         MessageId id = new MessageId(pid);
         ProcessAddress[] map = new ProcessAddress[N];
+        ByzantineConsensus byz = new ByzantineConsensus(null, null, null, null);
 
         if (!Files.exists(Paths.get("./keys"))) {
             Files.createDirectories(Paths.get("./keys"));
@@ -43,12 +45,20 @@ public class App {
                 .setMessage(ByteString.copyFrom(new byte[0])).setSender(id.getSenderId())
                 .setSeq(id.getSeq()).build();
         id.next();
+        
 
+        // leader broadcasts
+        if (pid == 0) { 
+            byz.leaderPropose("NEW"); 
+        }
+        
+        
         cc.send(0, msg);
         while (!cc.getCollected())
             id = cc.deliver(id);
 
         cc.close();
+        
 
         List<Message> received = cc.getMessages();
         for (int i = 0; i < N; ++i) {

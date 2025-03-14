@@ -5,12 +5,19 @@ import java.lang.Thread.State;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+
+import org.apache.commons.lang3.tuple.Pair;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.Message;
+
 import java.net.SocketException;
 import java.security.PrivateKey;
 import group13.depchain.client.Client;
 import group13.depchain.crypto.Util;
 import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
+import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
 import group13.depchain.util.MessageId;
 
@@ -43,69 +50,138 @@ import group13.depchain.util.MessageId;
 
 public class ByzantineConsensus {
 
-    private ArrayList<Client> processes;
-    private Client leader;
+    private ArrayList<Integer> procIds;
     private AuthenticatedPerfectLink al;
     private ConditionalCollect cc;
     private ArrayList<Message> written;
     private ArrayList<Message> accepted;
     private Epochstate epochstate;
+    private ArrayList<Epochstate> states;
     private String currVal;
+    private String tmpVal = null;
+    private final int leaderId = 0;
     // Read Phase
 
+    public OutputPredicate soundPredicate = (N, f, msgs) -> { return checkSoundPredicate(N,f,msgs); };
+
     // epochstate => (valts, val, writeset)
-    public ByzantineConsensus(ArrayList<Client> procs, Client leader, Epochstate epochstate,
-            ConditionalCollect cc) {
+    public ByzantineConsensus(ArrayList<Integer> procIds, Epochstate epochstate,
+            ConditionalCollect cc, AuthenticatedPerfectLink al) {
+        
+        this.al = al;
         this.cc = cc;
-        this.processes = procs;
-        this.leader = leader;
+        this.procIds = procIds;
         this.written = new ArrayList<>();
         this.accepted = new ArrayList<>();
         this.epochstate = epochstate;
     }
 
-    public void propose(String val) {
-        if (this.currVal == null) {
-            this.currVal = val;
-        }
+    public void leaderPropose(String val) {
+        // should check if it is leader process proposing?
+
+
+        // TODO: may not be just a string
+        if (this.currVal == null) { this.currVal = val; }     
 
         // Leader broadcasts READ message
-        /*
-         * for (p in this.processes) { if (p == this.leader) {continue;}
-         *
-         * this.leader.send(READ, this.currVal) OR could be done this.al.send(origin, destiny,
-         * (READ, this.currVal))
-         *
-         * }
-         *
-         */
+        MessageId id = new MessageId(procIds.get(0));
+        for (Integer i : this.procIds) {
+            id = new MessageId(i);
+            Message readMessage = Message.newBuilder().setCode(MessageCode.READ)
+            .setMessage(ByteString.copyFrom(new byte[0])).setSender(leaderId)
+            .setSeq(id.getSeq()).build();
+
+            this.al.send(i, readMessage);
+            id.next();
+        }
     }
 
-    // When a process receives the READ message from the Leader, it calls upon the Conditional
-    // Collect Input, inputting its current Epochstate
-    // Conditional Collect collects all these messages and outputs it - this is the list states[]
-    // In states[], there is either states[p] = Epochstate e OR states[p] = UNDEFINED
-    public void chooseTmpVal() {
-        String tmpVal = null;
-        /*
-         * for s in states[] if (s.ts > 0 && s.val != null && cc.binds(ts, val, states)) {tmpval =
-         * s.val} elif unbound(states[]) && (states[L].val != null) {tmpval = states[L].val}
-         *
-         * if (tmpval != null) { if there's a ts associated with tmpval, switch that ts with current
-         * epoch ts (ets) then send WRITE message with tmpval to everyone if () }
-         */
+    public void deliverReadMessage(int process, MessageId id) {
+        // May need to update epochstate HERE
+
+        // When a process receives the READ message from the leader, it sends its current state 
+        // trough the Conditional Collect, which signs it with a DS, to the leader process.
+        Message received = al.deliver();
+        MessageCode code = received.getCode();
+        int senderId = received.getSender();
+        if (code == MessageCode.READ && senderId == leaderId) {
+            cc.send(leaderId, this.epochstate);
+        }
+
+    }
+    
+    // quorumHighest(ts, v, states) = true quando o [número de Epochstates com timestamp inferior a ts]+1 (próprio ts,v) é superior a (N+f)/2
+
+    // certifiedValue(ts,v,states) = true quando o [número de Epochstates cujo writeset inclui pares (timestamp,val) com 
+    // timestamp >= ts e val = v] é superior a f
+
+    public boolean checkSoundPredicate(int total, int byzantine, ArrayList<Message> states) {
+        assert total == states.size();
+
+        int byzantineSafeCnt = 0, unboundCnt = 0, highestCnt = 0, certifiedCnt = 0;
+        int unboundQuorumSize = (total + 1) / 2, quorumHighestSize = (total+byzantine)/2;
+
+        Epochstate quorumHighest = states[0];
+
+        for (Epochstate s : states) {
+            if (s.getValue() != "Undefined") { byzantineSafeCnt++; }
+            else if (s.getTimeStamp() == 0) { unboundCnt++; }
+
+            // Quorum Highest
+            if (s.getTimeStamp() > quorumHighest.getTimeStamp() || (s.getTimeStamp() == quorumHighest.getTimeStamp() && s.getValue().equals(quorumHighest.getValue()))) {
+                quorumHighest = s;
+                highestCnt++;   // IS THIS CORRECT?
+            }
+        }
+
+        if (!(byzantineSafeCnt >= total-byzantine)) { return false; }
+        if (!(unboundCnt >= unboundQuorumSize) && !(highestCnt > quorumHighestSize)) { return false; }
+
+        // (byzantineSafeCnt >= total-byzantine) && (unboundCnt >= unboundQuorumSize || ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine));
+        //!(unboundCnt >= unboundQuorumSize) || !(highestCnt > quorumHighestSize))
+
+        // Certified Value. A different for loop is used to have quorumHighest defined
+        for (Epochstate s : states) {
+            for (Pair<Integer, String> p : s.getWriteset()) {
+                if (p.getLeft() >= quorumHighest.getTimeStamp() && p.getRight().equals(quorumHighest.getValue())) { certifiedCnt++; }
+            }
+        }
+
+        // SHOULD THERE BE A SEPARATED FINDTMPVAL FUNCTION?
+        this.tmpVal = null;
+        int ts = quorumHighest.getTimeStamp();
+        String val = quorumHighest.getValue();
+        
+        if (ts >= 0 && val != null && ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine)) {
+            this.tmpVal = val;
+        } else if (val != null && unboundCnt >= unboundQuorumSize) { this.tmpVal = val; }
+
+        return (unboundCnt >= unboundQuorumSize || ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine));
     }
 
-    /*
-     * TODO: Conditional Collect must use sound(.) predicate on an N-vector S of states (this being
-     * states[]) sound predicate has 2 conditions: (1) quorumhighest & (2) certifiedvalue. S means
-     * states[]. #(S) means number of DEFINED entries in states[]. For a pair (ts, val) in S, we say
-     * that S binds ts to val if (0) #(S) >= N-f && (1) quorumhighest(ts,val,S) == True && (2)
-     * certifiedvalue(ts,val,S) == True. binds(ts,val,S) When the ts of a quorum of entries in S is
-     * 0 (initial time), we say S is unbound, unbound(S) sound(S) is True if (1) S is unbound or (2)
-     * there exists a pair (ts,val) such that binds(ts,val,S) Every correct process initializes the
-     * cc primitive with the sound(.) predicate
-     */
+    public String writeTmpVal() {
+        if (this.tmpVal != null) {
+
+            for (Pair<Integer, String> p : this.epochstate.getWriteset()) {
+                if (p.getRight().equals(this.tmpVal)) {
+                    this.epochstate.removePair(p);
+                    this.epochstate.addPair(new Pair<>(this.epochstate.getTimeStamp(), tmpVal));
+                }
+            }
+
+            MessageId id = new MessageId(procIds.get(0));
+            for (Integer i : this.procIds) {
+                id = new MessageId(i);
+                // TODO: como construir esta mensagem bem?????
+                Message readMessage = Message.newBuilder().setCode(MessageCode.WRITE)
+                .setMessage(ByteString.copyFrom(tmpVal).setSender(leaderId)
+                .setSeq(id.getSeq()).build();
+
+                this.al.send(i, readMessage);
+                id.next();
+            }
+        }
+    }
 
     public ArrayList<Message> getWritten() {
         return this.written;
