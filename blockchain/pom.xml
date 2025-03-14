@@ -99,7 +99,7 @@
         </execution>
       </executions>
       <configuration>
-        <mainClass>group13.depchain.App</mainClass>
+        <mainClass>group13.depchain.BlockchainMember</mainClass>
       </configuration>
     </plugin>
   </plugins>

@@ -10,7 +10,7 @@ import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.util.ProcessAddress;
 
-public class App {
+public class BlockchainMember {
     public static void main(String[] args) throws Exception {
         int pid = Integer.valueOf(args[0]), N = 6;
 
