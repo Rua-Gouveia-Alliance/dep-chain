@@ -8,7 +8,6 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
-
 import group13.depchain.crypto.Util;
 import group13.depchain.util.MessageId;
 import group13.depchain.util.ProcessAddress;
@@ -20,6 +19,7 @@ public class ConditionalCollect {
     private byte[][] sigs;
     private List<Message> messages;
     private final int N;
+    private final int f;
     private final boolean leader;
     private final AuthenticatedPerfectLink ap2p;
     private final PrivateKey privateKey;
@@ -42,6 +42,7 @@ public class ConditionalCollect {
         this.sigs = new byte[1024][N];
         this.messages = new ArrayList<Message>();
         this.N = N;
+        this.f = (N - 1) / 3;
         this.leader = leader;
         this.ap2p = new AuthenticatedPerfectLink(listen_port, id, keys, address_map);
         this.privateKey = privateKey;
