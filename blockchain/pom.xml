@@ -14,7 +14,7 @@
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>3.8.1</version>
+      <version>4.11</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -32,29 +32,42 @@
   <build>
     <plugins>
       <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
-          <configuration>
-            <source>17</source>
-            <target>17</target>
-          </configuration>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <source>17</source>
+          <target>17</target>
+        </configuration>
       </plugin>
 
       <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>exec-maven-plugin</artifactId>
-          <version>3.4.1</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>java</goal>
-              </goals>
-            </execution>
-          </executions>
-          <configuration>
-            <mainClass>group13.depchain.BlockchainMember</mainClass>
-          </configuration>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.4.1</version>
+        <executions>
+          <execution>
+          <goals>
+            <goal>java</goal>
+          </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>group13.depchain.BlockchainMember</mainClass>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.22.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.apache.maven.surefire</groupId>
+            <artifactId>surefire-junit4</artifactId>
+            <version>2.22.0</version>
+          </dependency>
+        </dependencies>
       </plugin>
     </plugins>
   </build>
