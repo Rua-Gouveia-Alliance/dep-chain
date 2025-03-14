@@ -3,8 +3,6 @@ package group13.depchain.network;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
-
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 

@@ -1,198 +1,307 @@
 package group13.depchain.consensus;
 
-import java.io.IOException;
-import java.lang.Thread.State;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.google.protobuf.ByteString;
-import com.google.protobuf.Message;
-
+import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
-import java.security.PrivateKey;
-import group13.depchain.client.Client;
-import group13.depchain.crypto.Util;
+import java.nio.charset.StandardCharsets;
 import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
 import group13.depchain.util.MessageId;
-
-/*
- *  1. Inicializado com um value state, state esse que ficou do processo anterior.
- *  2. Este value contém
- *      (1) timestamp/value pair mais recente num quorum de WRITE messages durante o epoch com timestamp valts;
- *      (2) a writeset of timestamp/value pairs with one entry for every value that this process has ever written, timestamp being of the omst recent epoch
- *  3. Read Phase:
- *      (1) Obtém os estados de todos os processos para determinar se existe um valor que já tenha sido bep-decidido.
- *      (2) Aqui não basta o líder fazer esta computação, TODOS os processos têm que repetir a computação e escrever um valor.
- *
- *
- * 1. Líder L faz broadcast de mensagem READ a todos os processos, o que faz com que todos os processos invoquem o CC.
- * 2. TODOS os processos escrevem uma mensagem [Estado, valts, val, writeset].
- * 3. CC procura por um valor (de um Epoch anterior) que tenha que ser escrito na fase WRITE
- *      a. Para isto, usa-se o predicado sound(S) no vetor S de STATE messages.
- *      b. Uma entrada de S pode ser definida e conter uma mensagem de Estado ou ser UNDEFINED
- *      c. Para qq defined, há (1) timestamp ts, (2) valor v e (3) writeset ws
- *      d. Se L é correto, pelo menos N-f entradas de S são definidas.
- *      e. sound(.) tem 2 condições, em conjunto determinam se um processo já tinha um valor bep-decidded v num Epoch anterior. Se sim, v tem que ser escrito.
- *          1. Procura por um par de timestamp/value com o MAIOR timestamp dentro de um quorum de entradas definidas em S.
- *          2. Determina se um valor v ocorre em algum writeset de uma entrada de S originada por um processo correto.
- *              Quando o ws de >f contêm (ts,v) com timestamp ts ou superior, então v é CERTIFICADO e algum processo escreveu v no Epoch ts ou depois. Predicado certifiedvalues(.)
- *      f. Para um par (ts,v) em S, diz-se que S binds ts to v se #(S) >= N-f e [1] quorumhighest(ts,v,S) && [2] certifiedvalue(ts,v,S)
- *      g. Quando #(S) >= N-f e timestamps = 0 (estado inicial), diz-se que S é unbound
- *      h. Então, o predicado sound(S) é TRUE sse exist (ts,v) tq binds(ts,v,S) ou unbound(S)
- *
- */
+import group13.depchain.util.ProcessAddress;
+import javax.crypto.SecretKey;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 public class ByzantineConsensus {
 
-    private ArrayList<Integer> procIds;
     private AuthenticatedPerfectLink al;
     private ConditionalCollect cc;
-    private ArrayList<Message> written;
-    private ArrayList<Message> accepted;
-    private Epochstate epochstate;
-    private ArrayList<Epochstate> states;
-    private String currVal;
-    private String tmpVal = null;
-    private final int leaderId = 0;
-    // Read Phase
+    private EpochState epochstate;
+    private MessageId id;
+    private String[] written;
+    private String[] accepted;
+    private String decided;
+    private final int N;
+    private final int f;
+    private final int ets;
+    private final int leaderId;
 
-    public OutputPredicate soundPredicate = (N, f, msgs) -> { return checkSoundPredicate(N,f,msgs); };
+    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
+            int listen_port, SecretKey[] keys, PrivateKey privateKey, PublicKey[] publicKeys,
+            ProcessAddress[] address_map) throws SocketException {
+        this.epochstate = prevstate;
+        this.id = new MessageId(id);
+        this.written = new String[N];
+        this.accepted = new String[N];
+        this.decided = "";
+        this.N = N;
+        this.f = (N - 1) / 3;
+        this.ets = ets;
+        this.leaderId = leaderId;
 
-    // epochstate => (valts, val, writeset)
-    public ByzantineConsensus(ArrayList<Integer> procIds, Epochstate epochstate,
-            ConditionalCollect cc, AuthenticatedPerfectLink al) {
-        
-        this.al = al;
-        this.cc = cc;
-        this.procIds = procIds;
-        this.written = new ArrayList<>();
-        this.accepted = new ArrayList<>();
-        this.epochstate = epochstate;
-    }
-
-    public void leaderPropose(String val) {
-        // should check if it is leader process proposing?
-
-
-        // TODO: may not be just a string
-        if (this.currVal == null) { this.currVal = val; }     
-
-        // Leader broadcasts READ message
-        MessageId id = new MessageId(procIds.get(0));
-        for (Integer i : this.procIds) {
-            id = new MessageId(i);
-            Message readMessage = Message.newBuilder().setCode(MessageCode.READ)
-            .setMessage(ByteString.copyFrom(new byte[0])).setSender(leaderId)
-            .setSeq(id.getSeq()).build();
-
-            this.al.send(i, readMessage);
-            id.next();
-        }
-    }
-
-    public void deliverReadMessage(int process, MessageId id) {
-        // May need to update epochstate HERE
-
-        // When a process receives the READ message from the leader, it sends its current state 
-        // trough the Conditional Collect, which signs it with a DS, to the leader process.
-        Message received = al.deliver();
-        MessageCode code = received.getCode();
-        int senderId = received.getSender();
-        if (code == MessageCode.READ && senderId == leaderId) {
-            cc.send(leaderId, this.epochstate);
-        }
-
-    }
-    
-    // quorumHighest(ts, v, states) = true quando o [número de Epochstates com timestamp inferior a ts]+1 (próprio ts,v) é superior a (N+f)/2
-
-    // certifiedValue(ts,v,states) = true quando o [número de Epochstates cujo writeset inclui pares (timestamp,val) com 
-    // timestamp >= ts e val = v] é superior a f
-
-    public boolean checkSoundPredicate(int total, int byzantine, ArrayList<Message> states) {
-        assert total == states.size();
-
-        int byzantineSafeCnt = 0, unboundCnt = 0, highestCnt = 0, certifiedCnt = 0;
-        int unboundQuorumSize = (total + 1) / 2, quorumHighestSize = (total+byzantine)/2;
-
-        Epochstate quorumHighest = states[0];
-
-        for (Epochstate s : states) {
-            if (s.getValue() != "Undefined") { byzantineSafeCnt++; }
-            else if (s.getTimeStamp() == 0) { unboundCnt++; }
-
-            // Quorum Highest
-            if (s.getTimeStamp() > quorumHighest.getTimeStamp() || (s.getTimeStamp() == quorumHighest.getTimeStamp() && s.getValue().equals(quorumHighest.getValue()))) {
-                quorumHighest = s;
-                highestCnt++;   // IS THIS CORRECT?
-            }
-        }
-
-        if (!(byzantineSafeCnt >= total-byzantine)) { return false; }
-        if (!(unboundCnt >= unboundQuorumSize) && !(highestCnt > quorumHighestSize)) { return false; }
-
-        // (byzantineSafeCnt >= total-byzantine) && (unboundCnt >= unboundQuorumSize || ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine));
-        //!(unboundCnt >= unboundQuorumSize) || !(highestCnt > quorumHighestSize))
-
-        // Certified Value. A different for loop is used to have quorumHighest defined
-        for (Epochstate s : states) {
-            for (Pair<Integer, String> p : s.getWriteset()) {
-                if (p.getLeft() >= quorumHighest.getTimeStamp() && p.getRight().equals(quorumHighest.getValue())) { certifiedCnt++; }
-            }
-        }
-
-        // SHOULD THERE BE A SEPARATED FINDTMPVAL FUNCTION?
-        this.tmpVal = null;
-        int ts = quorumHighest.getTimeStamp();
-        String val = quorumHighest.getValue();
-        
-        if (ts >= 0 && val != null && ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine)) {
-            this.tmpVal = val;
-        } else if (val != null && unboundCnt >= unboundQuorumSize) { this.tmpVal = val; }
-
-        return (unboundCnt >= unboundQuorumSize || ((highestCnt > quorumHighestSize) && certifiedCnt > byzantine));
-    }
-
-    public String writeTmpVal() {
-        if (this.tmpVal != null) {
-
-            for (Pair<Integer, String> p : this.epochstate.getWriteset()) {
-                if (p.getRight().equals(this.tmpVal)) {
-                    this.epochstate.removePair(p);
-                    this.epochstate.addPair(new Pair<>(this.epochstate.getTimeStamp(), tmpVal));
+        OutputPredicate sound = (messages) -> {
+            EpochState[] S = new EpochState[this.N];
+            for (int i = 0; i < this.N; ++i) {
+                try {
+                    S[i] = new EpochState(StateMessage.parseFrom(messages.get(i).getMessage()));
+                } catch (InvalidProtocolBufferException e) {
+                    S[i] = new EpochState();
                 }
             }
 
-            MessageId id = new MessageId(procIds.get(0));
-            for (Integer i : this.procIds) {
-                id = new MessageId(i);
-                // TODO: como construir esta mensagem bem?????
-                Message readMessage = Message.newBuilder().setCode(MessageCode.WRITE)
-                .setMessage(ByteString.copyFrom(tmpVal).setSender(leaderId)
-                .setSeq(id.getSeq()).build();
+            if (this.unbound(S))
+                return true;
 
-                this.al.send(i, readMessage);
-                id.next();
+            for (EpochState s : S) {
+                if (this.binds(s.getValts(), s.getVal(), S))
+                    return true;
+            }
+
+            return false;
+        };
+
+        this.al = new AuthenticatedPerfectLink(listen_port, id, keys, address_map);
+        this.cc = new ConditionalCollect(listen_port, id, keys, privateKey, publicKeys, sound, N,
+                id == leaderId, address_map);
+
+        this.clear(this.written);
+        this.clear(this.accepted);
+    }
+
+    private void clear(String[] array) {
+        for (int i = 0; i < this.N; ++i)
+            array[i] = "";
+    }
+
+    private int countVal(String[] array, String val) {
+        int count = 0;
+        for (String v : array) {
+            if (v == val)
+                ++count;
+        }
+
+        return count;
+    }
+
+    private String getMajorityVal(String[] array) {
+        for (String val : array) {
+            if (countVal(array, val) > (this.N + this.f) / 2) {
+                return val;
+            }
+        }
+        return "";
+    }
+
+    private int countStates(EpochState[] S) {
+        int count = 0;
+        for (EpochState s : S) {
+            if (s.getValts() != -1)
+                ++count;
+        }
+
+        return count;
+    }
+
+    private boolean quorumHighest(int ts, String v, EpochState[] S) {
+        boolean exists = false;
+        for (EpochState s : S) {
+            if (s.getValts() == ts && s.getVal() == v) {
+                exists = true;
+                break;
+            }
+        }
+
+        if (!exists)
+            return false;
+
+        int count = 0;
+        for (EpochState s : S) {
+            if (s.getValts() < ts || (s.getValts() == ts && s.getVal() == v)) {
+                ++count;
+            }
+        }
+        return count > (this.N + this.f) / 2;
+    }
+
+    private boolean certifiedValue(int ts, String v, EpochState[] S) {
+        int count = 0;
+        for (EpochState s : S) {
+            for (WSEntry e : s.getWriteset()) {
+                if (e.getValts() >= ts && e.getVal() == v) {
+                    ++count;
+                    break;
+                }
+            }
+        }
+        return count > this.f;
+    }
+
+    private boolean binds(int ts, String v, EpochState[] S) {
+        return countStates(S) >= this.N - this.f && quorumHighest(ts, v, S)
+                && certifiedValue(ts, v, S);
+    }
+
+    private boolean unbound(EpochState[] S) {
+        if (countStates(S) < this.N - this.f)
+            return false;
+
+        int count = 0;
+        for (EpochState s : S) {
+            if (s.getValts() == 0)
+                ++count;
+        }
+        return count >= 2 * this.f + 1;
+    }
+
+    private void leaderPropose(String val) throws Exception {
+        assert this.id.getSenderId() != 0 : "The processs proposing is not leader";
+
+        if (this.epochstate.getVal() == "")
+            this.epochstate.setVal(val);
+
+        for (int i = 0; i < this.N; ++i) {
+            Message readMessage = Message.newBuilder().setCode(MessageCode.READ)
+                    .setMessage(ByteString.copyFrom(new byte[0])).setSender(this.id.getSenderId())
+                    .setSeq(this.id.getSeq()).build();
+            this.id.next();
+            this.al.send(i, readMessage);
+        }
+    }
+
+    private boolean deliverRead() throws Exception {
+        Message received = al.deliver();
+        if (received == null)
+            return false;
+
+        MessageCode code = received.getCode();
+        int senderId = received.getSender();
+        if (code != MessageCode.READ || senderId != leaderId)
+            return false;
+
+        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                .setVal(this.epochstate.getVal()).setValts(this.epochstate.getValts());
+
+        for (WSEntry e : this.epochstate.getWriteset())
+            stateMessageBuilder.addWriteset(e);
+
+        StateMessage stateMessage = stateMessageBuilder.build();
+        Message packet = Message.newBuilder().setCode(MessageCode.STATE)
+                .setMessage(stateMessage.toByteString()).setSender(this.id.getSenderId())
+                .setSeq(this.id.getSeq()).build();
+        this.id.next();
+        this.cc.send(leaderId, packet);
+        return true;
+    }
+
+    private void waitForCollected() throws Exception {
+        while (!this.cc.getCollected())
+            this.id = this.cc.deliver(this.id);
+        cc.close();
+
+        EpochState[] states = new EpochState[this.N];
+        List<Message> received = cc.getMessages();
+        for (int i = 0; i < this.N; ++i) {
+            Message m = received.get(i);
+            if (m == null || m.getCode() != MessageCode.STATE)
+                continue;
+
+            try {
+                StateMessage state = StateMessage.parseFrom(m.getMessage());
+                states[i] = new EpochState(state);
+            } catch (InvalidProtocolBufferException e) {
+                continue;
+            }
+        }
+
+        String tmpval = "";
+        for (EpochState s : states) {
+            String v = s.getVal();
+            int ts = s.getValts();
+            if (ts >= 0 && v != "" && this.binds(ts, v, states)) {
+                tmpval = v;
+                break;
+            }
+        }
+
+        if (tmpval == "" && states[this.leaderId].getVal() != "" && unbound(states)) {
+            tmpval = states[this.leaderId].getVal();
+        }
+
+        if (tmpval != "") {
+            this.epochstate.tryRemoveVal(tmpval);
+            this.epochstate.addVal(tmpval);
+
+            Message.Builder messageBuilder =
+                    Message.newBuilder().setCode(MessageCode.WRITE).setSender(this.id.getSenderId())
+                            .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
+            for (int i = 0; i < this.N; ++i) {
+                messageBuilder.setSeq(this.id.getSeq());
+                this.id.next();
+                al.send(i, messageBuilder.build());
             }
         }
     }
 
-    public ArrayList<Message> getWritten() {
-        return this.written;
+    private void deliver(MessageCode code, String[] list) throws Exception {
+        Message received = al.deliver();
+        if (received == null)
+            return;
+
+        if (received.getCode() != code)
+            return;
+
+        int p = received.getSender();
+        list[p] = received.getMessage().toString(StandardCharsets.UTF_8);
     }
 
-    public ArrayList<Message> getAccepted() {
-        return this.accepted;
+    private void waitForDeliverWrite() throws Exception {
+        String val;
+        while ((val = getMajorityVal(this.written)) == "")
+            deliver(MessageCode.WRITE, this.written);
+
+        this.epochstate.setValts(this.ets);
+        this.epochstate.setVal(val);
+        this.clear(this.written);
+
+        Message.Builder messageBuilder =
+                Message.newBuilder().setCode(MessageCode.ACCEPT).setSender(this.id.getSenderId())
+                        .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
+        for (int i = 0; i < this.N; ++i) {
+            messageBuilder.setSeq(this.id.getSeq());
+            this.id.next();
+            al.send(i, messageBuilder.build());
+        }
     }
 
-    public Epochstate getEpochstate() {
+    private void waitForDeliverAccept() throws Exception {
+        String val;
+        while ((val = getMajorityVal(this.accepted)) == "")
+            deliver(MessageCode.ACCEPT, this.accepted);
+
+        clear(this.accepted);
+        this.decided = val;
+    }
+
+    public EpochState run(String val) throws Exception {
+        // Read Phase
+        if (this.id.getSenderId() == this.leaderId)
+            leaderPropose(val);
+
+        while (!this.deliverRead());
+        this.waitForCollected();
+
+        // Write Phase
+        this.waitForDeliverWrite(); // Threads?
+        this.waitForDeliverAccept();
+
+        al.close();
         return this.epochstate;
     }
 
+    public String getDecided() {
+        return this.decided;
+    }
 }

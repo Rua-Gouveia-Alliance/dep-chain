@@ -2,11 +2,7 @@ package group13.depchain.crypto;
 
 import javax.crypto.SecretKey;
 import javax.crypto.Mac;
-import javax.crypto.KeyGenerator;
-import java.security.KeyPair;
 import java.security.MessageDigest;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;

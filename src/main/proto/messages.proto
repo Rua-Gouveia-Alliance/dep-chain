@@ -9,6 +9,8 @@ enum MessageCode {
   COLLECTED  = 3;
   READ       = 4;
   WRITE      = 5;
+  STATE      = 6;
+  ACCEPT     = 7;
 }
 
 // All messages will be encapsulated in this
@@ -17,6 +19,17 @@ message Message {
   int32 sender     = 2;
   int32 seq        = 3;
   bytes message    = 4;
+}
+
+message WSEntry {
+  int32  valts = 1;
+  string val   = 2;
+}
+
+message StateMessage {
+  int32 valts               = 1;
+  string val                = 2;
+  repeated WSEntry writeset = 3;
 }
 
 message DSMessage {
