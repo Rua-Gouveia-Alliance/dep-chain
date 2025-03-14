@@ -1,6 +1,7 @@
 package group13.depchain.consensus;
 
 import java.util.List;
+import java.util.Objects;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
@@ -30,8 +31,9 @@ public class ByzantineConsensus {
     private final int leaderId;
 
     public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
-            int listen_port, SecretKey[] keys, PrivateKey privateKey, PublicKey[] publicKeys,
-            ProcessAddress[] address_map) throws SocketException {
+            int cc_port, int al_port, SecretKey[] keys, PrivateKey privateKey,
+            PublicKey[] publicKeys, ProcessAddress[] cc_map, ProcessAddress[] al_map)
+            throws SocketException {
         this.epochstate = prevstate;
         this.id = new MessageId(id);
         this.written = new String[N];
@@ -48,7 +50,7 @@ public class ByzantineConsensus {
                 try {
                     S[i] = new EpochState(StateMessage.parseFrom(messages.get(i).getMessage()));
                 } catch (InvalidProtocolBufferException e) {
-                    S[i] = new EpochState();
+                    S[i] = new EpochState(-1);
                 }
             }
 
@@ -63,9 +65,9 @@ public class ByzantineConsensus {
             return false;
         };
 
-        this.al = new AuthenticatedPerfectLink(listen_port, id, keys, address_map);
-        this.cc = new ConditionalCollect(listen_port, id, keys, privateKey, publicKeys, sound, N,
-                id == leaderId, address_map);
+        this.al = new AuthenticatedPerfectLink(al_port, id, keys, al_map);
+        this.cc = new ConditionalCollect(cc_port, id, keys, privateKey, publicKeys, sound, N,
+                id == leaderId, cc_map);
 
         this.clear(this.written);
         this.clear(this.accepted);
@@ -79,7 +81,7 @@ public class ByzantineConsensus {
     private int countVal(String[] array, String val) {
         int count = 0;
         for (String v : array) {
-            if (v == val)
+            if (Objects.equals(v, val))
                 ++count;
         }
 
@@ -88,9 +90,8 @@ public class ByzantineConsensus {
 
     private String getMajorityVal(String[] array) {
         for (String val : array) {
-            if (countVal(array, val) > (this.N + this.f) / 2) {
+            if (val != "" && countVal(array, val) > (this.N + this.f) / 2)
                 return val;
-            }
         }
         return "";
     }
@@ -205,14 +206,14 @@ public class ByzantineConsensus {
         List<Message> received = cc.getMessages();
         for (int i = 0; i < this.N; ++i) {
             Message m = received.get(i);
-            if (m == null || m.getCode() != MessageCode.STATE)
-                continue;
-
-            try {
-                StateMessage state = StateMessage.parseFrom(m.getMessage());
-                states[i] = new EpochState(state);
-            } catch (InvalidProtocolBufferException e) {
-                continue;
+            if (m == null || m.getCode() != MessageCode.STATE) {
+                states[i] = new EpochState(-1);
+            } else {
+                try {
+                    states[i] = new EpochState(StateMessage.parseFrom(m.getMessage()));
+                } catch (InvalidProtocolBufferException e) {
+                    states[i] = new EpochState(-1);
+                }
             }
         }
 

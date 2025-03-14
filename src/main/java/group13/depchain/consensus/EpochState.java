@@ -10,7 +10,13 @@ public class EpochState {
     private List<WSEntry> writeset;
 
     public EpochState() {
-        this.valts = -1;
+        this.valts = 0;
+        this.val = "";
+        this.writeset = new ArrayList<WSEntry>();
+    }
+
+    public EpochState(int valts) {
+        this.valts = valts;
         this.val = "";
         this.writeset = new ArrayList<WSEntry>();
     }

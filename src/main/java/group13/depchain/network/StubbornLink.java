@@ -12,6 +12,7 @@ public class StubbornLink {
         private final int process;
         private final Message message;
         private boolean end = false;
+        private int backoff = 0;
 
         public ConcurrentSend(int process, Message message) {
             this.process = process;
@@ -24,7 +25,9 @@ public class StubbornLink {
             while (!this.end) {
                 try {
                     flp2p.send(process, message);
-                } catch (IOException e) {
+                    sleep(1000 + backoff);
+                    backoff *= 10;
+                } catch (IOException | InterruptedException e) {
                     System.out.println("flp2p send failed");
                 }
             }

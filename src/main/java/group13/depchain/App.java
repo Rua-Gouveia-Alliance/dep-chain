@@ -13,7 +13,6 @@ import group13.depchain.util.ProcessAddress;
 public class App {
     public static void main(String[] args) throws Exception {
         int pid = Integer.valueOf(args[0]), N = 6;
-        ProcessAddress[] map = new ProcessAddress[N];
 
         if (!Files.exists(Paths.get("./keys"))) {
             Files.createDirectories(Paths.get("./keys"));
@@ -24,12 +23,15 @@ public class App {
         PublicKey[] KUs = KeyManager.getPublicKeys(N, "./keys");
         SecretKey[] Ks = KeyManager.getSecretKeys(N, pid, "./keys");
 
+        ProcessAddress[] cc_map = new ProcessAddress[N];
+        ProcessAddress[] al_map = new ProcessAddress[N];
         for (int i = 0; i < N; ++i) {
-            map[i] = new ProcessAddress("localhost", 5000 + i);
+            cc_map[i] = new ProcessAddress("localhost", 5000 + i);
+            al_map[i] = new ProcessAddress("localhost", 5000 + 100 + i);
         }
 
         ByzantineConsensus bep = new ByzantineConsensus(pid, 0, N, 0, new EpochState(), 5000 + pid,
-                Ks, KP, KUs, map);
+                5000 + 100 + pid, Ks, KP, KUs, cc_map, al_map);
 
         bep.run("YAYA");
         System.out.println(bep.getDecided());

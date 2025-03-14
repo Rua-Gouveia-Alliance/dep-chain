@@ -50,24 +50,24 @@ public class ConditionalCollect {
         this.predicate = predicate;
 
         for (int i = 0; i < N; i++) {
-            this.messages.add(Message.newBuilder().setSender(-1).setCode(MessageCode.NULL).setSeq(-1).build());
+            this.messages.add(Message.newBuilder().setSender(-1).setCode(MessageCode.NULL)
+                    .setSeq(-1).build());
         }
     }
 
     public void send(int process, Message message) throws Exception {
-        ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(),
-                this.privateKey));
+        ByteString ds = ByteString.copyFrom(Util.ds(message.toByteArray(), this.privateKey));
         DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ds).build();
-        Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setSender(message.getSender())
-                .setSeq(message.getSeq()).setMessage(dsMessage.toByteString()).build();
+        Message packet =
+                Message.newBuilder().setCode(MessageCode.DSMESSAGE).setSender(message.getSender())
+                        .setSeq(message.getSeq()).setMessage(dsMessage.toByteString()).build();
         ap2p.send(process, packet);
     }
 
     public MessageId deliver(MessageId messageId) throws Exception {
         Message received = ap2p.deliver();
-        if (received == null) {
+        if (received == null)
             return messageId;
-        }
 
         MessageCode code = received.getCode();
         if (this.leader && code == MessageCode.DSMESSAGE) {
@@ -86,8 +86,8 @@ public class ConditionalCollect {
 
                 CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
                 for (int i = 0; i < this.N; ++i) {
-                    colMessageBuilder.addMessages(this.messages.get(i)).addSigs(
-                            ByteString.copyFrom(this.sigs[i]));
+                    colMessageBuilder.addMessages(this.messages.get(i))
+                            .addSigs(ByteString.copyFrom(this.sigs[i]));
                 }
 
                 for (int i = 0; i < this.N; ++i) {
@@ -109,12 +109,12 @@ public class ConditionalCollect {
                     return messageId;
 
                 for (int i = 0; i < this.N; ++i) {
-                Message msg = colMessage.getMessages(i);
-                byte[] sig = colMessage.getSigs(i).toByteArray();
-                if (msg != null && !Util.verifyDS(msg.toByteArray(), sig,
-                this.publicKeys[i]))
-                 return messageId;
-                 }
+                    Message msg = colMessage.getMessages(i);
+                    byte[] sig = colMessage.getSigs(i).toByteArray();
+                    if (msg.getCode() != MessageCode.NULL
+                            && !Util.verifyDS(msg.toByteArray(), sig, this.publicKeys[i]))
+                        return messageId;
+                }
 
                 this.messages = colMessage.getMessagesList();
                 for (int i = 0; i < this.N; i++) {
