@@ -37,7 +37,7 @@ public class BlockchainMember {
         ByzantineConsensus bep = new ByzantineConsensus(pid, 0, N, 0, new EpochState(), 5000 + pid,
                 5000 + 100 + pid, Ks, KP, KUs, cc_map, al_map);
 
-        bep.run("YAYA");
+        bep.run("ABAB");
         System.out.println(bep.getDecided());
     }
 }

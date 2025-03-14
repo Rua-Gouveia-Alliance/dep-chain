@@ -22,7 +22,7 @@ public class FairLossLink {
     }
 
     public void send(int process, Message message) throws IOException {
-        //assert process > address_map.length - 1 : "Invalid process ID (" + process + ")!";
+        assert process <= address_map.length - 1 : "Invalid process ID (" + process + ")!";
 
         byte[] bytes = message.toByteArray();
         DatagramPacket packet = new DatagramPacket(bytes, bytes.length,
