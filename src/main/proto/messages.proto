@@ -18,12 +18,6 @@ message Message {
   bytes message    = 4;
 }
 
-message DummyMessage {
-}
-
-message ReadMessage {
-}
-
 message DSMessage {
   Message message = 1;
   bytes ds        = 2;

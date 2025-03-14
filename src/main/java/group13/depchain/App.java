@@ -1,9 +1,8 @@
 package group13.depchain;
 
 import java.util.List;
-
-import group13.depchain.Messages.DummyMessage;
-import group13.depchain.Messages.Message;
+import com.google.protobuf.ByteString;
+import group13.depchain.Messages.*;
 import group13.depchain.Messages.MessageCode;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.util.MessageId;
@@ -19,11 +18,12 @@ public class App {
             map[i] = new ProcessAddress("localhost", 5000 + i);
         }
 
-        ConditionalCollect cc = new ConditionalCollect(5000 + pid, pid, null, null, null, null, N, pid == 0, map);
+        ConditionalCollect cc =
+                new ConditionalCollect(5000 + pid, pid, null, null, null, null, N, pid == 0, map);
 
-        DummyMessage dummy = DummyMessage.newBuilder().build();
-        Message msg = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setMessage(dummy.toByteString())
-                .setSender(id.getSenderId()).setSeq(id.getSeq()).build();
+        Message msg = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
+                .setMessage(ByteString.copyFrom(new byte[0])).setSender(id.getSenderId())
+                .setSeq(id.getSeq()).build();
         id.next();
 
         cc.send(0, msg);
