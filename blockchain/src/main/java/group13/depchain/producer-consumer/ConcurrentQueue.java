@@ -2,12 +2,13 @@ package group13.depchain.producerconsumer;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ConcurrentQueue<E> {
-    private ReentrantLock mutex = new ReentrantLock();
-    private ReentrantLock sem = new ReentrantLock();
+    private final ReentrantLock mutex = new ReentrantLock();
     private final ArrayDeque<E> queue = new ArrayDeque<>();
+    public final Condition cond = mutex.newCondition();
 
     public void lock() {
         mutex.lock();
@@ -18,11 +19,11 @@ public class ConcurrentQueue<E> {
     }
 
     public void waitChange() throws InterruptedException {
-        sem.wait();
+        cond.wait();
     }
 
     public void notifyChange() {
-        sem.notifyAll();
+        cond.notifyAll();
     }
 
     public void push(E e) {
@@ -42,6 +43,10 @@ public class ConcurrentQueue<E> {
         mutex.lock();
         queue.remove(e);
         mutex.unlock();
+    }
+
+    public int length() {
+        return this.queue.size();
     }
 
     public ArrayDeque<E> getContainer() {

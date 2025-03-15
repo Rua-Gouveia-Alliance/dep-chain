@@ -50,7 +50,17 @@ public class BlockchainClientManager implements Runnable {
                     System.out.println("Received request for value: " + val);
 
                     this.pending.push(val);
-                    this.decided.waitChange();
+                    synchronized (this.pending.cond) {
+                        this.pending.notifyChange();
+                    }
+
+                    int len = decided.length();
+                    while (decided.length() == len) {
+                        synchronized (this.decided.cond) {
+                            this.decided.waitChange();
+                        }
+                    }
+
 
                     Response.Builder response = Response.newBuilder();
 
