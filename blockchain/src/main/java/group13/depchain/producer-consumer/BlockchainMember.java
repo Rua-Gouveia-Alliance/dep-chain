@@ -69,7 +69,6 @@ public class BlockchainMember implements Runnable {
                     System.out.println("Proposing: " + proposed);
                 }
 
-
                 bep.run(proposed);
                 String decided = bep.getDecided();
                 System.out.println("Decided: " + decided);

@@ -61,9 +61,7 @@ public class BlockchainClientManager implements Runnable {
                         }
                     }
 
-
                     Response.Builder response = Response.newBuilder();
-
                     this.decided.lock();
                     for (String e : this.decided.getContainer())
                         response.addEntries(e);
