@@ -6,10 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
 import java.util.Base64;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
 
@@ -35,9 +32,9 @@ public class BlockchainClientManager implements Runnable {
 
         try {
             ServerSocket serverSocket = new ServerSocket(10000);
-            System.out.println("Leader waiting for client.");
+            System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
-            System.out.println("Client connected.");
+            System.out.println("[ClientManager] Client connected.");
             BufferedReader in =
                     new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
@@ -47,7 +44,7 @@ public class BlockchainClientManager implements Runnable {
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
                     String val = request.getVal();
-                    System.out.println("Received request for value: " + val);
+                    System.out.println("[ClientManager] Received request for value: " + val);
 
                     this.pending.push(val);
                     synchronized (this.pending.cond) {

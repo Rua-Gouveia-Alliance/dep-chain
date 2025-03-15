@@ -235,9 +235,9 @@ public class ByzantineConsensus {
             this.epochstate.tryRemoveVal(tmpval);
             this.epochstate.addVal(tmpval);
 
-            Message.Builder messageBuilder = Message.newBuilder().setCode(MessageCode.WRITE)
-                    .setSender(this.id.getSenderId())
-                    .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
+            Message.Builder messageBuilder =
+                    Message.newBuilder().setCode(MessageCode.WRITE).setSender(this.id.getSenderId())
+                            .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
             for (int i = 0; i < this.N; ++i) {
                 messageBuilder.setSeq(this.id.getSeq());
                 this.id.next();
@@ -267,9 +267,9 @@ public class ByzantineConsensus {
         this.epochstate.setVal(val);
         this.clear(this.written);
 
-        Message.Builder messageBuilder = Message.newBuilder().setCode(MessageCode.ACCEPT)
-                .setSender(this.id.getSenderId())
-                .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
+        Message.Builder messageBuilder =
+                Message.newBuilder().setCode(MessageCode.ACCEPT).setSender(this.id.getSenderId())
+                        .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
         for (int i = 0; i < this.N; ++i) {
             messageBuilder.setSeq(this.id.getSeq());
             this.id.next();
@@ -291,8 +291,7 @@ public class ByzantineConsensus {
         if (this.id.getSenderId() == this.leaderId)
             leaderPropose(val);
 
-        while (!this.deliverRead())
-            ;
+        while (!this.deliverRead());
         this.waitForCollected();
 
         // Write Phase

@@ -4,9 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.atomic.AtomicReferenceArray;
+import java.util.Objects;
 import javax.crypto.SecretKey;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
@@ -40,7 +38,7 @@ public class BlockchainMember implements Runnable {
                 KeyManager.generateKeys(this.N, "./keys");
             }
 
-            System.out.println("Starting blockchain member.");
+            System.out.println("[BlockchainMember] Starting blockchain member.");
             PrivateKey KP = KeyManager.getPrivateKey(this.id, "./keys");
             PublicKey[] KUs = KeyManager.getPublicKeys(this.N, "./keys");
             SecretKey[] Ks = KeyManager.getSecretKeys(this.N, this.id, "./keys");
@@ -52,11 +50,12 @@ public class BlockchainMember implements Runnable {
                 al_map[i] = new ProcessAddress("localhost", 5000 + 100 + i);
             }
 
+            EpochState state = new EpochState();
             while (this.running) {
-                System.out.println("Starting BFT.");
-                ByzantineConsensus bep =
-                        new ByzantineConsensus(this.id, 0, this.N, 0, new EpochState(),
-                                5000 + this.id, 5000 + 100 + this.id, Ks, KP, KUs, cc_map, al_map);
+                System.out.println("[BlockchainMember] Starting BFT.");
+                state = new EpochState();
+                ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0, state,
+                        5000 + this.id, 5000 + 100 + this.id, Ks, KP, KUs, cc_map, al_map);
 
                 String proposed = "";
                 if (this.id == 0) {
@@ -65,20 +64,22 @@ public class BlockchainMember implements Runnable {
                             this.pending.waitChange();
                         }
                     }
+
                     proposed = this.pending.pop();
-                    System.out.println("Proposing: " + proposed);
+                    System.out.println("[BlockchainMember] Proposing: " + proposed);
                 }
 
+                // state = bep.run(proposed);
                 bep.run(proposed);
                 String decided = bep.getDecided();
-                System.out.println("Decided: " + decided);
                 this.decided.push(decided);
                 synchronized (this.decided.cond) {
                     this.decided.notifyChange();
                 }
 
-                if (proposed != "" && proposed != decided)
-                    this.pending.push(decided);
+                System.out.println("[BlockchainMember] Decided: " + decided);
+                if (this.id == 0 && proposed != "" && !Objects.equals(proposed, decided))
+                    this.pending.push(proposed);
 
                 bep.close();
             }

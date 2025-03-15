@@ -12,7 +12,7 @@ public class StubbornLink {
         private final int process;
         private final Message message;
         private boolean end = false;
-        private int delay = 1000;
+        private int delay = 250;
 
         public ConcurrentSend(int process, Message message) {
             this.process = process;
