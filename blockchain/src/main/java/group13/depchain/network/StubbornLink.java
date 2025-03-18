@@ -3,27 +3,31 @@ package group13.depchain.network;
 import java.io.IOException;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
 
 public class StubbornLink {
 
-    private class ConcurrentSend extends Thread {
-        private final int process;
-        private final Message message;
-        private boolean end = false;
-        private int delay = 250;
+    private final ReentrantLock mutex;
+    private final ConcurrentSend csend;
+    private final FairLossLink flp2p;
+    private ArrayList<ImmutablePair<Integer, Message>> messages;
 
-        public ConcurrentSend(int process, Message message) {
-            this.process = process;
-            this.message = message;
-        }
+    private class ConcurrentSend extends Thread {
+        private AtomicBoolean end = new AtomicBoolean(false);
+        private final int delay = 250;
 
         @Override
         public void run() {
-            while (!this.end) {
+            while (!this.end.get()) {
                 try {
-                    flp2p.send(process, message);
+                    mutex.lock();
+                    for (ImmutablePair<Integer, Message> p : messages)
+                        flp2p.send(p.getLeft(), p.getRight());
+                    mutex.unlock();
                     sleep(delay);
                 } catch (IOException | InterruptedException e) {
                     System.out.println("flp2p send failed");
@@ -32,22 +36,23 @@ public class StubbornLink {
         }
 
         public void end() {
-            this.end = true;
+            this.end.set(true);
         }
     }
 
-    private FairLossLink flp2p;
-    private ArrayList<ConcurrentSend> threads;
-
     public StubbornLink(int port, ProcessAddress[] address_map) throws SocketException {
         this.flp2p = new FairLossLink(port, address_map);
-        this.threads = new ArrayList<>();
+        this.mutex = new ReentrantLock();
+        this.messages = new ArrayList<>();
+        this.csend = new ConcurrentSend();
+        this.csend.start();
     }
 
     public void send(int process, Message message) throws IOException {
-        ConcurrentSend thread = new ConcurrentSend(process, message);
-        thread.start();
-        threads.addLast(thread);
+        ImmutablePair<Integer, Message> entry = new ImmutablePair<>(process, message);
+        this.mutex.lock();
+        this.messages.add(entry);
+        this.mutex.unlock();
     }
 
     public Message deliver() throws IOException {
@@ -55,14 +60,13 @@ public class StubbornLink {
     }
 
     public void close() {
-        for (ConcurrentSend thread : threads) {
-            thread.end();
-            try {
-                thread.join();
-            } catch (InterruptedException e) {
-                // TODO better handle
-            }
+        csend.end();
+        try {
+            csend.join();
+        } catch (InterruptedException e) {
+            // TODO better handle
+        } finally {
+            flp2p.close();
         }
-        flp2p.close();
     }
 }
