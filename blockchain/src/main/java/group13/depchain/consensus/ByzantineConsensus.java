@@ -10,7 +10,6 @@ import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
-import group13.depchain.util.MessageId;
 import group13.depchain.util.ProcessAddress;
 import javax.crypto.SecretKey;
 import java.security.PrivateKey;
@@ -21,27 +20,26 @@ public class ByzantineConsensus {
     private AuthenticatedPerfectLink al;
     private ConditionalCollect cc;
     private EpochState epochstate;
-    private MessageId id;
     private String[] written;
     private String[] accepted;
     private String decided;
     private final int N;
     private final int f;
     private final int ets;
+    private final int id;
     private final int leaderId;
 
-    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
-            int cc_port, int al_port, SecretKey[] keys, PrivateKey privateKey,
-            PublicKey[] publicKeys, ProcessAddress[] cc_map, ProcessAddress[] al_map)
+    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate, int port,
+            SecretKey[] keys, PrivateKey privateKey, PublicKey[] publicKeys, ProcessAddress[] map)
             throws SocketException {
         this.epochstate = prevstate;
-        this.id = new MessageId(id);
         this.written = new String[N];
         this.accepted = new String[N];
         this.decided = "";
         this.N = N;
         this.f = (N - 1) / 3;
         this.ets = ets;
+        this.id = id;
         this.leaderId = leaderId;
 
         OutputPredicate sound = (messages) -> {
@@ -65,9 +63,8 @@ public class ByzantineConsensus {
             return false;
         };
 
-        this.al = new AuthenticatedPerfectLink(al_port, id, keys, al_map);
-        this.cc = new ConditionalCollect(cc_port, id, keys, privateKey, publicKeys, sound, N,
-                id == leaderId, cc_map);
+        this.al = new AuthenticatedPerfectLink(port, id, keys, map);
+        this.cc = new ConditionalCollect(privateKey, publicKeys, sound, N, id, leaderId, al);
 
         this.clear(this.written);
         this.clear(this.accepted);
@@ -158,29 +155,25 @@ public class ByzantineConsensus {
     }
 
     private void leaderPropose(String val) throws Exception {
-        assert this.id.getSenderId() == 0 : "The processs proposing is not leader";
+        assert this.id == 0 : "The processs proposing is not leader";
 
         if (this.epochstate.getVal() == "")
             this.epochstate.setVal(val);
 
-        for (int i = 0; i < this.N; ++i) {
-            Message readMessage = Message.newBuilder().setCode(MessageCode.READ)
-                    .setMessage(ByteString.copyFrom(new byte[0])).setSender(this.id.getSenderId())
-                    .setSeq(this.id.getSeq()).build();
-            this.id.next();
-            this.al.send(i, readMessage);
-        }
+        Message.Builder builder = Message.newBuilder().setCode(MessageCode.READ)
+                .setMessage(ByteString.copyFrom(new byte[0]));
+        for (int i = 0; i < this.N; ++i)
+            this.al.send(i, builder);
+
     }
 
-    private boolean deliverRead() throws Exception {
-        Message received = al.deliver();
-        if (received == null)
-            return false;
-
+    private boolean deliverREAD(Message received) throws Exception {
         MessageCode code = received.getCode();
         int senderId = received.getSender();
         if (code != MessageCode.READ || senderId != leaderId)
             return false;
+
+        System.out.println("[ByzantineConsensus] Delivered READ");
 
         StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
                 .setVal(this.epochstate.getVal()).setValts(this.epochstate.getValts());
@@ -190,22 +183,22 @@ public class ByzantineConsensus {
 
         StateMessage stateMessage = stateMessageBuilder.build();
         Message packet = Message.newBuilder().setCode(MessageCode.STATE)
-                .setMessage(stateMessage.toByteString()).setSender(this.id.getSenderId())
-                .setSeq(this.id.getSeq()).build();
-        this.id.next();
+                .setMessage(stateMessage.toByteString()).build();
         this.cc.send(leaderId, packet);
         return true;
     }
 
-    private void waitForCollected() throws Exception {
-        while (!this.cc.getCollected())
-            this.id = this.cc.deliver(this.id);
-        cc.close();
+    private void deliverCOLLECTED(Message received) throws Exception {
+        this.cc.deliverCOLLECTED(received);
+        if (!this.cc.getCollected())
+            return;
+
+        System.out.println("[ByzantineConsensus] Delivered COLLECTED");
 
         EpochState[] states = new EpochState[this.N];
-        List<Message> received = cc.getMessages();
+        List<Message> messages = this.cc.getMessages();
         for (int i = 0; i < this.N; ++i) {
-            Message m = received.get(i);
+            Message m = messages.get(i);
             if (m == null || m.getCode() != MessageCode.STATE) {
                 states[i] = new EpochState(-1);
             } else {
@@ -235,70 +228,82 @@ public class ByzantineConsensus {
             this.epochstate.tryRemoveVal(tmpval);
             this.epochstate.addVal(tmpval);
 
-            Message.Builder messageBuilder =
-                    Message.newBuilder().setCode(MessageCode.WRITE).setSender(this.id.getSenderId())
-                            .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
-            for (int i = 0; i < this.N; ++i) {
-                messageBuilder.setSeq(this.id.getSeq());
-                this.id.next();
-                al.send(i, messageBuilder.build());
-            }
+            Message.Builder builder = Message.newBuilder().setCode(MessageCode.WRITE)
+                    .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
+            for (int i = 0; i < this.N; ++i)
+                al.send(i, builder);
         }
     }
 
-    private void deliver(MessageCode code, String[] list) throws Exception {
-        Message received = al.deliver();
-        if (received == null)
+    private void deliverACCEPT(Message received) throws Exception {
+        if (received.getCode() != MessageCode.ACCEPT)
             return;
 
-        if (received.getCode() != code)
-            return;
+        System.out.println("[ByzantineConsensus] Delivered ACCEPT");
 
         int p = received.getSender();
-        list[p] = received.getMessage().toString(StandardCharsets.UTF_8);
-    }
+        this.accepted[p] = received.getMessage().toString(StandardCharsets.UTF_8);
 
-    private void waitForDeliverWrite() throws Exception {
-        String val;
-        while ((val = getMajorityVal(this.written)) == "")
-            deliver(MessageCode.WRITE, this.written);
-
-        this.epochstate.setValts(this.ets);
-        this.epochstate.setVal(val);
-        this.clear(this.written);
-
-        Message.Builder messageBuilder =
-                Message.newBuilder().setCode(MessageCode.ACCEPT).setSender(this.id.getSenderId())
-                        .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
-        for (int i = 0; i < this.N; ++i) {
-            messageBuilder.setSeq(this.id.getSeq());
-            this.id.next();
-            al.send(i, messageBuilder.build());
-        }
-    }
-
-    private void waitForDeliverAccept() throws Exception {
-        String val;
-        while ((val = getMajorityVal(this.accepted)) == "")
-            deliver(MessageCode.ACCEPT, this.accepted);
+        String val = getMajorityVal(this.accepted);
+        if (val == "")
+            return;
 
         clear(this.accepted);
         this.decided = val;
     }
 
+    private void deliverWRITE(Message received) throws Exception {
+        if (received.getCode() != MessageCode.WRITE)
+            return;
+
+        System.out.println("[ByzantineConsensus] Delivered WRITE");
+
+        int p = received.getSender();
+        this.written[p] = received.getMessage().toString(StandardCharsets.UTF_8);
+
+        String val = getMajorityVal(this.written);
+        if (val == "")
+            return;
+
+        this.epochstate.setValts(this.ets);
+        this.epochstate.setVal(val);
+        this.clear(this.written);
+
+        Message.Builder builder = Message.newBuilder().setCode(MessageCode.ACCEPT)
+                .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
+        for (int i = 0; i < this.N; ++i)
+            al.send(i, builder);
+    }
+
+    public void deliver() throws Exception {
+        Message received = this.al.deliver();
+        if (received == null || received.getSender() >= this.N)
+            return;
+
+        MessageCode code = received.getCode();
+        if (code == MessageCode.DSMESSAGE) {
+            this.cc.deliverDS(received);
+        } else if (code == MessageCode.COLLECTED) {
+            this.deliverCOLLECTED(received);
+        } else if (code == MessageCode.ACCEPT) {
+            this.deliverACCEPT(received);
+        } else if (code == MessageCode.WRITE) {
+            this.deliverWRITE(received);
+        } else if (code == MessageCode.READ) {
+            this.deliverREAD(received);
+        } else {
+            System.out.println("[ByzantineConsensus] Unrecognized message");
+        }
+    }
+
     public EpochState run(String val) throws Exception {
         // Read Phase
-        if (this.id.getSenderId() == this.leaderId)
+        if (this.id == this.leaderId)
             leaderPropose(val);
 
-        while (!this.deliverRead());
-        this.waitForCollected();
+        while (this.decided == "")
+            this.deliver();
 
-        // Write Phase
-        this.waitForDeliverWrite(); // Threads?
-        this.waitForDeliverAccept();
-
-        al.close();
         return this.epochstate;
     }
 
@@ -307,7 +312,6 @@ public class ByzantineConsensus {
     }
 
     public void close() {
-        this.cc.close();
         this.al.close();
     }
 }

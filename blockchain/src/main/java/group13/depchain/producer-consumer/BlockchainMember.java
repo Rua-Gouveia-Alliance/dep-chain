@@ -43,19 +43,18 @@ public class BlockchainMember implements Runnable {
             PublicKey[] KUs = KeyManager.getPublicKeys(this.N, "./keys");
             SecretKey[] Ks = KeyManager.getSecretKeys(this.N, this.id, "./keys");
 
-            ProcessAddress[] cc_map = new ProcessAddress[N];
-            ProcessAddress[] al_map = new ProcessAddress[N];
+            ProcessAddress[] map = new ProcessAddress[N];
             for (int i = 0; i < N; ++i) {
-                cc_map[i] = new ProcessAddress("localhost", 5000 + i);
-                al_map[i] = new ProcessAddress("localhost", 5000 + 100 + i);
+                map[i] = new ProcessAddress("localhost", 5000 + i);
             }
 
-            EpochState state = new EpochState();
+            EpochState state;
+            ByzantineConsensus bep;
             while (this.running) {
                 System.out.println("[BlockchainMember] Starting BFT.");
                 state = new EpochState();
-                ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0, state,
-                        5000 + this.id, 5000 + 100 + this.id, Ks, KP, KUs, cc_map, al_map);
+                bep = new ByzantineConsensus(this.id, 0, this.N, 0, state, 5000 + this.id, Ks, KP,
+                        KUs, map);
 
                 String proposed = "";
                 if (this.id == 0) {

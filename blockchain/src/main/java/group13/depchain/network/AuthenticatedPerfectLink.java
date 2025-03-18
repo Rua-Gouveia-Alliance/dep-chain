@@ -12,18 +12,23 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 public class AuthenticatedPerfectLink {
 
-    private StubbornLink sp2p;
-    private HashSet<MessageId> delivered;
+    private final MessageId id;
+    private final StubbornLink sp2p;
+    private final HashSet<MessageId> delivered;
     private final SecretKey[] keys;
 
     public AuthenticatedPerfectLink(int listen_port, int id, SecretKey[] keys,
             ProcessAddress[] address_map) throws SocketException {
+        this.id = new MessageId(id);
         this.sp2p = new StubbornLink(listen_port, address_map);
         this.delivered = new HashSet<>();
         this.keys = keys;
     }
 
-    public void send(int process, Message message) throws Exception {
+    public void send(int process, Message.Builder builder) throws Exception {
+        Message message = builder.setSender(this.id.getSenderId()).setSeq(this.id.getSeq()).build();
+        this.id.next();
+
         ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
         MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
 
@@ -47,7 +52,6 @@ public class AuthenticatedPerfectLink {
         }
 
         Message contents = message.getMessage();
-        // TODO: Confirmar que o senderId é um id que existe?
         MessageId recId = new MessageId(contents.getSender(), contents.getSeq());
 
         if (!Util.verifyMAC(contents.toByteArray(), message.getMac().toByteArray(),

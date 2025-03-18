@@ -61,4 +61,10 @@ public class EpochState {
         this.writeset.add(entry);
     }
 
+    public void print() {
+        System.out.print("valts: " + this.valts + ", val: " + this.val + "ws: [ ");
+        for (WSEntry e : this.writeset)
+            System.out.print("( " + e.getValts() + ", " + e.getVal() + ") ");
+        System.out.println("]");
+    }
 }
