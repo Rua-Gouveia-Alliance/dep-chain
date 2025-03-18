@@ -58,6 +58,7 @@ public class ConditionalCollect {
         if (this.id == process) {
             this.messages.set(this.id, message);
             this.sigs[this.id] = ds;
+            return;
         }
 
         DSMessage dsMessage =
@@ -69,7 +70,7 @@ public class ConditionalCollect {
 
     public void deliverCOLLECTED(Message received) throws Exception {
         MessageCode code = received.getCode();
-        if (code == MessageCode.COLLECTED) {
+        if (code == MessageCode.COLLECTED && !this.collected) {
             try {
                 CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
                 if (collected || countMessages(colMessage.getMessagesList()) < this.N - f
@@ -98,7 +99,7 @@ public class ConditionalCollect {
 
     public void deliverDS(Message received) throws Exception {
         MessageCode code = received.getCode();
-        if (this.id == this.leaderId && code == MessageCode.DSMESSAGE) {
+        if (this.id == this.leaderId && code == MessageCode.DSMESSAGE && !this.collected) {
             try {
                 DSMessage dsMessage = DSMessage.parseFrom(received.getMessage());
                 Message message = dsMessage.getMessage();
@@ -123,6 +124,10 @@ public class ConditionalCollect {
                         .setMessage(colMessage.toByteString());
                 for (int i = 0; i < this.N; ++i)
                     this.ap2p.send(i, builder);
+
+                // No need to wait for our own message
+                if (this.id == this.leaderId)
+                    this.collected = true;
 
             } catch (InvalidProtocolBufferException e) {
                 return;

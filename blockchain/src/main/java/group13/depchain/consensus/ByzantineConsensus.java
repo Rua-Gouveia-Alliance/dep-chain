@@ -156,6 +156,7 @@ public class ByzantineConsensus {
 
     private void leaderPropose(String val) throws Exception {
         assert this.id == 0 : "The processs proposing is not leader";
+        System.out.println("[ByzantineConsensus] Proposing: " + val);
 
         if (this.epochstate.getVal() == "")
             this.epochstate.setVal(val);
@@ -184,11 +185,15 @@ public class ByzantineConsensus {
         StateMessage stateMessage = stateMessageBuilder.build();
         Message packet = Message.newBuilder().setCode(MessageCode.STATE)
                 .setMessage(stateMessage.toByteString()).build();
-        this.cc.send(leaderId, packet);
+        this.cc.send(this.leaderId, packet);
         return true;
     }
 
     private void deliverCOLLECTED(Message received) throws Exception {
+        // Already collected, ignore
+        if (this.cc.getCollected())
+            return;
+
         this.cc.deliverCOLLECTED(received);
         if (!this.cc.getCollected())
             return;
@@ -248,7 +253,7 @@ public class ByzantineConsensus {
         if (val == "")
             return;
 
-        clear(this.accepted);
+        this.clear(this.accepted);
         this.decided = val;
     }
 

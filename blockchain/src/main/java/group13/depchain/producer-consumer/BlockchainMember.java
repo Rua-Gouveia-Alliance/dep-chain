@@ -65,7 +65,6 @@ public class BlockchainMember implements Runnable {
                     }
 
                     proposed = this.pending.pop();
-                    System.out.println("[BlockchainMember] Proposing: " + proposed);
                 }
 
                 // state = bep.run(proposed);
