@@ -70,6 +70,7 @@ public class ConditionalCollect {
 
     public void deliverCOLLECTED(Message received) throws Exception {
         MessageCode code = received.getCode();
+        // TODO: perguntar ao professor se podemos ignorar o COLLECTED se ja demos collect
         if (code == MessageCode.COLLECTED && !this.collected) {
             try {
                 CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
@@ -99,6 +100,7 @@ public class ConditionalCollect {
 
     public void deliverDS(Message received) throws Exception {
         MessageCode code = received.getCode();
+        // TODO: perguntar ao professor se podemos ignorar o DS se ja demos collect
         if (this.id == this.leaderId && code == MessageCode.DSMESSAGE && !this.collected) {
             try {
                 DSMessage dsMessage = DSMessage.parseFrom(received.getMessage());
