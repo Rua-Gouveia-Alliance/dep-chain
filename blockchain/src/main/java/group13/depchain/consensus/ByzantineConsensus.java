@@ -301,18 +301,13 @@ public class ByzantineConsensus {
         }
     }
 
-    public EpochState run(String val) throws Exception {
-        // Read Phase
+    public String run(String val) throws Exception {
         if (this.id == this.leaderId)
             leaderPropose(val);
 
         while (this.decided == "")
             this.deliver();
 
-        return this.epochstate;
-    }
-
-    public String getDecided() {
         return this.decided;
     }
 

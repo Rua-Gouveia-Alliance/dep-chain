@@ -41,6 +41,9 @@ public class BlockchainClientManager implements Runnable {
 
             while (this.running) {
                 String message = in.readLine();
+                if (message == null)
+                    continue;
+
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
                     String val = request.getVal();

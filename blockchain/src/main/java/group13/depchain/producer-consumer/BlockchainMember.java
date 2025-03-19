@@ -48,13 +48,10 @@ public class BlockchainMember implements Runnable {
                 map[i] = new ProcessAddress("localhost", 5000 + i);
             }
 
-            EpochState state;
-            ByzantineConsensus bep;
             while (this.running) {
                 System.out.println("[BlockchainMember] Starting BFT.");
-                state = new EpochState();
-                bep = new ByzantineConsensus(this.id, 0, this.N, 0, state, 5000 + this.id, Ks, KP,
-                        KUs, map);
+                ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
+                        new EpochState(), 5000 + this.id, Ks, KP, KUs, map);
 
                 String proposed = "";
                 if (this.id == 0) {
@@ -67,9 +64,11 @@ public class BlockchainMember implements Runnable {
                     proposed = this.pending.pop();
                 }
 
-                // state = bep.run(proposed);
-                bep.run(proposed);
-                String decided = bep.getDecided();
+                // TODO: Perguntar ao professor se precisamos de ter cuidado com os estados antigos.
+                // O run so termina se decidirmos algo. A unica forma de nao decidirmos e se tivermos
+                // mais de f membros faulty ou se o lider em si for faulty. Como nao temos de garantir
+                // liveness em nenhum destes casos acho que isto é tranquilo.
+                String decided = bep.run(proposed);
                 this.decided.push(decided);
                 synchronized (this.decided.cond) {
                     this.decided.notifyChange();
