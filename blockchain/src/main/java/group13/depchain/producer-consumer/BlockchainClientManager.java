@@ -10,28 +10,23 @@ import java.util.Base64;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
 
-public class BlockchainClientManager implements Runnable {
-    private final int id;
-    private boolean running = true;
+public class BlockchainClientManager extends Thread {
+    private final int clientId;
     private final ConcurrentQueue<String> decided;
     private final ConcurrentQueue<String> pending;
 
-    public BlockchainClientManager(int id, ConcurrentQueue<String> decided,
+    public BlockchainClientManager(int clientId, ConcurrentQueue<String> decided,
             ConcurrentQueue<String> pending) {
-        this.id = id;
+        this.clientId = clientId;
         this.decided = decided;
         this.pending = pending;
-    }
-
-    public void stop() {
-        this.running = false;
     }
 
     @Override
     public void run() {
 
         try {
-            ServerSocket serverSocket = new ServerSocket(10000);
+            ServerSocket serverSocket = new ServerSocket(6000 + this.clientId);
             System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
             System.out.println("[ClientManager] Client connected.");
@@ -39,10 +34,10 @@ public class BlockchainClientManager implements Runnable {
                     new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
-            while (this.running) {
+            while (true) {
                 String message = in.readLine();
                 if (message == null)
-                    continue;
+                    break;
 
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
@@ -72,6 +67,9 @@ public class BlockchainClientManager implements Runnable {
                     continue;
                 }
             }
+
+            in.close();
+            out.close();
             clientSocket.close();
             serverSocket.close();
         } catch (IOException e) {

@@ -6,12 +6,14 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 import group13.depchain.Client.*;
 
 public class BlockchainClient {
     public static void main(String[] args) throws Exception {
-        Socket socket = new Socket("localhost", 10000);
+        int id = Integer.valueOf(args[0]);
+        Socket socket = new Socket("localhost", 6000 + id);
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
@@ -20,7 +22,7 @@ public class BlockchainClient {
             System.out.println("Write a value to the blockchain ('X' to exit):");
 
             String val = scanner.nextLine();
-            if (val == "X")
+            if (Objects.equals(val, "X"))
                 break;
             System.out.println("Proposing " + val);
 
@@ -28,6 +30,9 @@ public class BlockchainClient {
             out.println(Base64.getEncoder().encodeToString(request.toByteArray()));
 
             String response = in.readLine();
+            if (response == null)
+                break;
+
             Response state = Response.parseFrom(Base64.getDecoder().decode(response));
             List<String> entries = state.getEntriesList();
 
@@ -38,6 +43,9 @@ public class BlockchainClient {
         }
 
         System.out.println("Exiting.");
+        in.close();
+        out.close();
         socket.close();
+        scanner.close();
     }
 }

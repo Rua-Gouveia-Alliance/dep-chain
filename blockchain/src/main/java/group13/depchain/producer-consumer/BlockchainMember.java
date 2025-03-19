@@ -5,16 +5,17 @@ import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.crypto.SecretKey;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.util.ProcessAddress;
 
-public class BlockchainMember implements Runnable {
+public class BlockchainMember extends Thread {
     private final int N;
     private final int id;
-    private boolean running = true;
+    private AtomicBoolean running = new AtomicBoolean(true);
     private final ConcurrentQueue<String> decided;
     private final ConcurrentQueue<String> pending;
 
@@ -26,8 +27,8 @@ public class BlockchainMember implements Runnable {
         this.pending = pending;
     }
 
-    public void stop() {
-        this.running = false;
+    public void end() {
+        this.running.set(false);
     }
 
     @Override
@@ -44,11 +45,10 @@ public class BlockchainMember implements Runnable {
             SecretKey[] Ks = KeyManager.getSecretKeys(this.N, this.id, "./keys");
 
             ProcessAddress[] map = new ProcessAddress[N];
-            for (int i = 0; i < N; ++i) {
+            for (int i = 0; i < N; ++i)
                 map[i] = new ProcessAddress("localhost", 5000 + i);
-            }
 
-            while (this.running) {
+            while (this.running.get()) {
                 System.out.println("[BlockchainMember] Starting BFT.");
                 ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
                         new EpochState(), 5000 + this.id, Ks, KP, KUs, map);
@@ -65,10 +65,15 @@ public class BlockchainMember implements Runnable {
                 }
 
                 // TODO: Perguntar ao professor se precisamos de ter cuidado com os estados antigos.
-                // O run so termina se decidirmos algo. A unica forma de nao decidirmos e se tivermos
-                // mais de f membros faulty ou se o lider em si for faulty. Como nao temos de garantir
+                // O run so termina se decidirmos algo. A unica forma de nao decidirmos e se
+                // tivermos
+                // mais de f membros faulty ou se o lider em si for faulty. Como nao temos de
+                // garantir
                 // liveness em nenhum destes casos acho que isto é tranquilo.
                 String decided = bep.run(proposed);
+                if (!this.running.get())
+                    break;
+
                 this.decided.push(decided);
                 synchronized (this.decided.cond) {
                     this.decided.notifyChange();
@@ -81,7 +86,7 @@ public class BlockchainMember implements Runnable {
                 bep.close();
             }
         } catch (Exception e) {
-            this.running = false;
+            this.running.set(false);
         }
     }
 }

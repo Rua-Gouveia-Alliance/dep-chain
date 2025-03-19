@@ -17,12 +17,12 @@ public class StubbornLink {
     private ArrayList<ImmutablePair<Integer, Message>> messages;
 
     private class ConcurrentSend extends Thread {
-        private AtomicBoolean end = new AtomicBoolean(false);
+        private AtomicBoolean running = new AtomicBoolean(true);
         private final int delay = 250;
 
         @Override
         public void run() {
-            while (!this.end.get()) {
+            while (this.running.get()) {
                 try {
                     mutex.lock();
                     for (ImmutablePair<Integer, Message> p : messages)
@@ -36,7 +36,7 @@ public class StubbornLink {
         }
 
         public void end() {
-            this.end.set(true);
+            this.running.set(false);
         }
     }
 
