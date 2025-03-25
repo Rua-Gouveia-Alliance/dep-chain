@@ -6,6 +6,8 @@ To generate the necessary sources, compile and package the code, run:
 
 ```
 $ mvn clean install -pl blockchain -am
+$ cd blockchain
+$ mvn web3j:generate-sources
 ```
 
 ## Demo
