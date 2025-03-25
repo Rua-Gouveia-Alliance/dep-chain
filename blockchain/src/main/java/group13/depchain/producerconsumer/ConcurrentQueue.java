@@ -1,7 +1,6 @@
 package group13.depchain.producerconsumer;
 
 import java.util.ArrayDeque;
-import java.util.Iterator;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -35,6 +34,13 @@ public class ConcurrentQueue<E> {
     public E pop() {
         mutex.lock();
         E result = queue.pop();
+        mutex.unlock();
+        return result;
+    }
+
+    public E top() {
+        mutex.lock();
+        E result = queue.isEmpty() ? null : queue.getLast();
         mutex.unlock();
         return result;
     }

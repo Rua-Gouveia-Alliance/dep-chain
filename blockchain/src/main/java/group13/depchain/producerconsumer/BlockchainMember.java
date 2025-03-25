@@ -4,22 +4,22 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.crypto.SecretKey;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.util.ProcessAddress;
+import group13.depchain.consensus.Block;
 
 public class BlockchainMember extends Thread {
     private final int N;
     private final int id;
     private AtomicBoolean running = new AtomicBoolean(true);
-    private final ConcurrentQueue<String> decided;
+    private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<String> pending;
 
-    public BlockchainMember(int id, int N, ConcurrentQueue<String> decided,
+    public BlockchainMember(int id, int N, ConcurrentQueue<Block> decided,
             ConcurrentQueue<String> pending) {
         this.id = id;
         this.N = N;
@@ -53,24 +53,29 @@ public class BlockchainMember extends Thread {
                 ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
                         new EpochState(), 5000 + this.id, Ks, KP, KUs, map);
 
-                String proposed = "";
+                Block prev = this.decided.top();
+                Block proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
                 if (this.id == 0) {
-                    while (this.pending.length() == 0) {
-                        synchronized (this.pending.cond) {
-                            this.pending.waitChange();
+                    while (!proposed.full()) {
+                        while (this.pending.length() == 0) {
+                            synchronized (this.pending.cond) {
+                                this.pending.waitChange();
+                            }
                         }
+                        proposed.append(this.pending.pop());
                     }
-
-                    proposed = this.pending.pop();
+                    proposed.hash();
                 }
 
+                // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com a
+                // chave public do recetor
                 // TODO: Perguntar ao professor se precisamos de ter cuidado com os estados antigos.
                 // O run so termina se decidirmos algo. A unica forma de nao decidirmos e se
                 // tivermos
                 // mais de f membros faulty ou se o lider em si for faulty. Como nao temos de
                 // garantir
                 // liveness em nenhum destes casos acho que isto é tranquilo.
-                String decided = bep.run(proposed);
+                Block decided = bep.run(proposed);
                 if (!this.running.get())
                     break;
 
@@ -80,8 +85,8 @@ public class BlockchainMember extends Thread {
                 }
 
                 System.out.println("[BlockchainMember] Decided: " + decided);
-                if (this.id == 0 && proposed != "" && !Objects.equals(proposed, decided))
-                    this.pending.push(proposed);
+                // if (this.id == 0 && proposed != "" && !Objects.equals(proposed, decided))
+                // this.pending.push(proposed);
 
                 bep.close();
             }

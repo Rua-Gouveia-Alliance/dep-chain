@@ -1,11 +1,9 @@
 package group13.depchain.consensus;
 
 import java.util.List;
-import java.util.Objects;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
 import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
@@ -20,9 +18,9 @@ public class ByzantineConsensus {
     private AuthenticatedPerfectLink al;
     private ConditionalCollect cc;
     private EpochState epochstate;
-    private String[] written;
-    private String[] accepted;
-    private String decided;
+    private Block[] written;
+    private Block[] accepted;
+    private Block decided;
     private final int N;
     private final int f;
     private final int ets;
@@ -33,9 +31,9 @@ public class ByzantineConsensus {
             SecretKey[] keys, PrivateKey privateKey, PublicKey[] publicKeys, ProcessAddress[] map)
             throws SocketException {
         this.epochstate = prevstate;
-        this.written = new String[N];
-        this.accepted = new String[N];
-        this.decided = "";
+        this.written = new Block[N];
+        this.accepted = new Block[N];
+        this.decided = new Block();
         this.N = N;
         this.f = (N - 1) / 3;
         this.ets = ets;
@@ -70,27 +68,27 @@ public class ByzantineConsensus {
         this.clear(this.accepted);
     }
 
-    private void clear(String[] array) {
+    private void clear(Block[] array) {
         for (int i = 0; i < this.N; ++i)
-            array[i] = "";
+            array[i] = new Block();
     }
 
-    private int countVal(String[] array, String val) {
+    private int countVal(Block[] array, Block val) {
         int count = 0;
-        for (String v : array) {
-            if (Objects.equals(v, val))
+        for (Block v : array) {
+            if (v.eq(val))
                 ++count;
         }
 
         return count;
     }
 
-    private String getMajorityVal(String[] array) {
-        for (String val : array) {
-            if (val != "" && countVal(array, val) > (this.N + this.f) / 2)
+    private Block getMajorityVal(Block[] array) {
+        for (Block val : array) {
+            if (!val.isNullBlock() && countVal(array, val) > (this.N + this.f) / 2)
                 return val;
         }
-        return "";
+        return new Block();
     }
 
     private int countStates(EpochState[] S) {
@@ -103,10 +101,10 @@ public class ByzantineConsensus {
         return count;
     }
 
-    private boolean quorumHighest(int ts, String v, EpochState[] S) {
+    private boolean quorumHighest(int ts, Block v, EpochState[] S) {
         boolean exists = false;
         for (EpochState s : S) {
-            if (s.getValts() == ts && s.getVal() == v) {
+            if (s.getValts() == ts && v.eq(s.getVal())) {
                 exists = true;
                 break;
             }
@@ -117,18 +115,18 @@ public class ByzantineConsensus {
 
         int count = 0;
         for (EpochState s : S) {
-            if (s.getValts() < ts || (s.getValts() == ts && s.getVal() == v)) {
+            if (s.getValts() < ts || (s.getValts() == ts && v.eq(s.getVal()))) {
                 ++count;
             }
         }
         return count > (this.N + this.f) / 2;
     }
 
-    private boolean certifiedValue(int ts, String v, EpochState[] S) {
+    private boolean certifiedValue(int ts, Block v, EpochState[] S) {
         int count = 0;
         for (EpochState s : S) {
             for (WSEntry e : s.getWriteset()) {
-                if (e.getValts() >= ts && e.getVal() == v) {
+                if (e.getValts() >= ts && v.eq(e.getVal())) {
                     ++count;
                     break;
                 }
@@ -137,7 +135,7 @@ public class ByzantineConsensus {
         return count > this.f;
     }
 
-    private boolean binds(int ts, String v, EpochState[] S) {
+    private boolean binds(int ts, Block v, EpochState[] S) {
         return countStates(S) >= this.N - this.f && quorumHighest(ts, v, S)
                 && certifiedValue(ts, v, S);
     }
@@ -154,11 +152,11 @@ public class ByzantineConsensus {
         return count >= 2 * this.f + 1;
     }
 
-    private void leaderPropose(String val) throws Exception {
+    private void leaderPropose(Block val) throws Exception {
         assert this.id == 0 : "The processs proposing is not leader";
         System.out.println("[ByzantineConsensus] Proposing: " + val);
 
-        if (this.epochstate.getVal() == "")
+        if (this.epochstate.getVal().isNullBlock())
             this.epochstate.setVal(val);
 
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.READ)
@@ -176,8 +174,9 @@ public class ByzantineConsensus {
 
         System.out.println("[ByzantineConsensus] Delivered READ");
 
-        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                .setVal(this.epochstate.getVal()).setValts(this.epochstate.getValts());
+        StateMessage.Builder stateMessageBuilder =
+                StateMessage.newBuilder().setVal(this.epochstate.getVal().toBlockMessage())
+                        .setValts(this.epochstate.getValts());
 
         for (WSEntry e : this.epochstate.getWriteset())
             stateMessageBuilder.addWriteset(e);
@@ -215,26 +214,27 @@ public class ByzantineConsensus {
             }
         }
 
-        String tmpval = "";
+        Block tmpval = new Block();
         for (EpochState s : states) {
-            String v = s.getVal();
+            Block v = s.getVal();
             int ts = s.getValts();
-            if (ts >= 0 && v != "" && this.binds(ts, v, states)) {
+            if (ts >= 0 && !v.isNullBlock() && this.binds(ts, v, states)) {
                 tmpval = v;
                 break;
             }
         }
 
-        if (tmpval == "" && states[this.leaderId].getVal() != "" && unbound(states)) {
+        if (tmpval.isNullBlock() && !states[this.leaderId].getVal().isNullBlock()
+                && unbound(states)) {
             tmpval = states[this.leaderId].getVal();
         }
 
-        if (tmpval != "") {
+        if (!tmpval.isNullBlock()) {
             this.epochstate.tryRemoveVal(tmpval);
             this.epochstate.addVal(tmpval);
 
             Message.Builder builder = Message.newBuilder().setCode(MessageCode.WRITE)
-                    .setMessage(ByteString.copyFrom(tmpval, StandardCharsets.UTF_8));
+                    .setMessage(tmpval.toBlockMessage().toByteString());
             for (int i = 0; i < this.N; ++i)
                 al.send(i, builder);
         }
@@ -247,10 +247,10 @@ public class ByzantineConsensus {
         System.out.println("[ByzantineConsensus] Delivered ACCEPT");
 
         int p = received.getSender();
-        this.accepted[p] = received.getMessage().toString(StandardCharsets.UTF_8);
+        this.accepted[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
 
-        String val = getMajorityVal(this.accepted);
-        if (val == "")
+        Block val = getMajorityVal(this.accepted);
+        if (val.isNullBlock())
             return;
 
         this.clear(this.accepted);
@@ -264,10 +264,10 @@ public class ByzantineConsensus {
         System.out.println("[ByzantineConsensus] Delivered WRITE");
 
         int p = received.getSender();
-        this.written[p] = received.getMessage().toString(StandardCharsets.UTF_8);
+        this.written[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
 
-        String val = getMajorityVal(this.written);
-        if (val == "")
+        Block val = getMajorityVal(this.written);
+        if (val.isNullBlock())
             return;
 
         this.epochstate.setValts(this.ets);
@@ -275,7 +275,7 @@ public class ByzantineConsensus {
         this.clear(this.written);
 
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.ACCEPT)
-                .setMessage(ByteString.copyFrom(val, StandardCharsets.UTF_8));
+                .setMessage(val.toBlockMessage().toByteString());
         for (int i = 0; i < this.N; ++i)
             al.send(i, builder);
     }
@@ -301,11 +301,11 @@ public class ByzantineConsensus {
         }
     }
 
-    public String run(String val) throws Exception {
+    public Block run(Block val) throws Exception {
         if (this.id == this.leaderId)
             leaderPropose(val);
 
-        while (this.decided == "")
+        while (this.decided.isNullBlock())
             this.deliver();
 
         return this.decided;

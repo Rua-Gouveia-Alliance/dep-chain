@@ -9,13 +9,14 @@ import java.net.Socket;
 import java.util.Base64;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
+import group13.depchain.consensus.Block;
 
 public class BlockchainClientManager extends Thread {
     private final int clientId;
-    private final ConcurrentQueue<String> decided;
+    private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<String> pending;
 
-    public BlockchainClientManager(int clientId, ConcurrentQueue<String> decided,
+    public BlockchainClientManager(int clientId, ConcurrentQueue<Block> decided,
             ConcurrentQueue<String> pending) {
         this.clientId = clientId;
         this.decided = decided;
@@ -58,8 +59,9 @@ public class BlockchainClientManager extends Thread {
 
                     Response.Builder response = Response.newBuilder();
                     this.decided.lock();
-                    for (String e : this.decided.getContainer())
-                        response.addEntries(e);
+                    for (Block e : this.decided.getContainer())
+                        for (String tx : e.getTransactions())
+                            response.addEntries(tx);
                     this.decided.unlock();
 
                     out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));

@@ -3,6 +3,7 @@ package group13.depchain;
 import group13.depchain.producerconsumer.BlockchainMember;
 import java.util.ArrayList;
 import java.util.Scanner;
+import group13.depchain.consensus.Block;
 import group13.depchain.producerconsumer.BlockchainClientManager;
 import group13.depchain.producerconsumer.ConcurrentQueue;
 
@@ -11,7 +12,7 @@ public class App {
     public static void main(String[] args) throws Exception {
         int id = Integer.valueOf(args[0]), N = 6;
         ArrayList<BlockchainClientManager> clients = new ArrayList<>();
-        ConcurrentQueue<String> decided = new ConcurrentQueue<>();
+        ConcurrentQueue<Block> decided = new ConcurrentQueue<>();
         ConcurrentQueue<String> pending = new ConcurrentQueue<>();
 
         BlockchainMember member = new BlockchainMember(id, N, decided, pending);

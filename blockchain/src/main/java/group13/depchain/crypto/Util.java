@@ -2,7 +2,9 @@ package group13.depchain.crypto;
 
 import javax.crypto.SecretKey;
 import javax.crypto.Mac;
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
@@ -32,5 +34,16 @@ public class Util {
         verifier.initVerify(publicKey);
         verifier.update(msg);
         return verifier.verify(signature);
+    }
+
+    public static byte[] hash(String str) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return digest.digest(str.getBytes(StandardCharsets.UTF_8));
+        } catch (NoSuchAlgorithmException e) {
+            System.out.println("[Util.hash] Unexpected failure. Exiting.");
+            System.exit(1);
+            return null;
+        }
     }
 }

@@ -21,14 +21,21 @@ message Message {
   bytes message    = 4;
 }
 
+message BlockMessage {
+  bytes blockHash = 1;
+  bytes previousBlockHash = 2;
+  repeated string transactions = 3;
+  bool isNullBlock = 4;
+}
+
 message WSEntry {
   int32  valts = 1;
-  string val   = 2;
+  BlockMessage val   = 2;
 }
 
 message StateMessage {
   int32 valts               = 1;
-  string val                = 2;
+  BlockMessage val          = 2;
   repeated WSEntry writeset = 3;
 }
 

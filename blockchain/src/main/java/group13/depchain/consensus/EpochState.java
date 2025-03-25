@@ -6,26 +6,25 @@ import group13.depchain.Messages.*;
 
 public class EpochState {
     private int valts;
-    private String val;
+    private Block val;
     private List<WSEntry> writeset;
 
     public EpochState() {
         this.valts = 0;
-        this.val = "";
+        this.val = new Block();
         this.writeset = new ArrayList<WSEntry>();
     }
 
     public EpochState(int valts) {
         this.valts = valts;
-        this.val = "";
+        this.val = new Block();
         this.writeset = new ArrayList<WSEntry>();
     }
 
     public EpochState(StateMessage message) {
         this.valts = message.getValts();
-        this.val = message.getVal();
+        this.val = new Block(message.getVal());
         this.writeset = message.getWritesetList();
-
     }
 
     public int getValts() {
@@ -36,11 +35,11 @@ public class EpochState {
         this.valts = valts;
     }
 
-    public String getVal() {
+    public Block getVal() {
         return this.val;
     }
 
-    public void setVal(String val) {
+    public void setVal(Block val) {
         this.val = val;
     }
 
@@ -48,23 +47,26 @@ public class EpochState {
         return this.writeset;
     }
 
-    public void tryRemoveVal(String val) {
+    public void tryRemoveVal(Block val) {
         for (WSEntry e : this.writeset) {
-            if (e.getVal() == val) {
+            if (val.eq(e.getVal())) {
                 this.writeset.remove(e);
             }
         }
     }
 
-    public void addVal(String val) {
-        WSEntry entry = WSEntry.newBuilder().setValts(this.valts).setVal(val).build();
+    public void addVal(Block val) {
+        WSEntry entry =
+                WSEntry.newBuilder().setValts(this.valts).setVal(val.toBlockMessage()).build();
         this.writeset.add(entry);
     }
 
-    public void print() {
-        System.out.print("valts: " + this.valts + ", val: " + this.val + "ws: [ ");
+    @Override
+    public String toString() {
+        String str = "{ valts: " + this.valts + ", val: " + this.val + "ws: [ ";
         for (WSEntry e : this.writeset)
-            System.out.print("( " + e.getValts() + ", " + e.getVal() + ") ");
-        System.out.println("]");
+            str += "( " + e.getValts() + ", " + e.getVal() + ") ";
+        str += "] }";
+        return str;
     }
 }
