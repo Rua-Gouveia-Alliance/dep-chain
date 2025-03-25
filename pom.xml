@@ -12,8 +12,6 @@
         <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <solidity.version>0.8.28</solidity.version>
-
         <web3j.version>4.9.5</web3j.version>
         <tuweni.version>2.3.1</tuweni.version>
         <guava.version>33.0.0-jre</guava.version>
@@ -28,64 +26,64 @@
 
     <dependencies>
         <dependency>
-        <groupId>com.google.protobuf</groupId>
-        <artifactId>protobuf-java</artifactId>
-        <version>3.23.0</version>
+            <groupId>com.google.protobuf</groupId>
+            <artifactId>protobuf-java</artifactId>
+            <version>3.23.0</version>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
-        <plugin>
-            <groupId>org.xolstice.maven.plugins</groupId>
-            <artifactId>protobuf-maven-plugin</artifactId>
-            <version>0.6.1</version>
-            <configuration>
-            <protocArtifact>com.google.protobuf:protoc:3.23.0:exe:${os.detected.classifier}</protocArtifact>
-            </configuration>
-            <executions>
-            <execution>
-                <goals>
-                <goal>compile</goal>
-                </goals>
-            </execution>
-            </executions>
-        </plugin>
-
-        <plugin>
-            <groupId>kr.motd.maven</groupId>
-            <artifactId>os-maven-plugin</artifactId>
-            <version>1.7.0</version>
-            <executions>
-                <execution>
-                <goals>
-                    <goal>detect</goal>
-                </goals>
-                </execution>
-            </executions>
-        </plugin>
-
-        <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>build-helper-maven-plugin</artifactId>
-            <version>3.3.0</version>
-            <executions>
-                <execution>
-                <id>add-source</id>
-                <phase>generate-sources</phase>
-                <goals>
-                    <goal>add-source</goal>
-                </goals>
+            <plugin>
+                <groupId>org.xolstice.maven.plugins</groupId>
+                <artifactId>protobuf-maven-plugin</artifactId>
+                <version>0.6.1</version>
                 <configuration>
-                    <sources>
-                    <source>${project.basedir}/target/generated-sources/protobuf/java</source>
-                    </sources>
+                    <protocArtifact>com.google.protobuf:protoc:3.23.0:exe:${os.detected.classifier}</protocArtifact>
                 </configuration>
-                </execution>
-            </executions>
-        </plugin>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-        <plugin>
+            <plugin>
+                <groupId>kr.motd.maven</groupId>
+                <artifactId>os-maven-plugin</artifactId>
+                <version>1.7.0</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>detect</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.3.0</version>
+                <executions>
+                    <execution>
+                    <id>add-source</id>
+                    <phase>generate-sources</phase>
+                    <goals>
+                        <goal>add-source</goal>
+                    </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/target/generated-sources/protobuf/java</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
                 <version>3.2.2</version>
