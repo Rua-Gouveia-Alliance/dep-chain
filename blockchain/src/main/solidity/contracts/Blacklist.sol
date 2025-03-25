@@ -1,0 +1,56 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.26;
+
+contract Blacklist {
+    mapping(address => bool) private blacklisted;
+    mapping(address => bool) private admins;  // Role-based access control
+    address public owner;
+
+    event AddedToBlacklist(address indexed account);
+    event RemovedFromBlacklist(address indexed account);
+    event AdminAdded(address indexed admin);
+    event AdminRemoved(address indexed admin);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "Not the owner");
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(admins[msg.sender], "Not an admin");
+        _;
+    }
+
+    constructor() {
+        owner = msg.sender;
+        admins[msg.sender] = true;  // Owner is an admin by default
+    }
+
+    function addAdmin(address account) external onlyOwner {
+        admins[account] = true;
+        emit AdminAdded(account);
+    }
+
+    function removeAdmin(address account) external onlyOwner {
+        admins[account] = false;
+        emit AdminRemoved(account);
+    }
+
+    function addToBlacklist(address account) external onlyAdmin {
+        blacklisted[account] = true;
+        emit AddedToBlacklist(account);
+    }
+
+    function removeFromBlacklist(address account) external onlyAdmin {
+        blacklisted[account] = false;
+        emit RemovedFromBlacklist(account);
+    }
+
+    function isBlacklisted(address account) external view returns (bool) {
+        return blacklisted[account];
+    }
+
+    function isAdmin(address account) external view returns (bool) {
+        return admins[account];
+    }
+}
