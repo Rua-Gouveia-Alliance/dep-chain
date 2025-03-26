@@ -31,7 +31,7 @@ public class FairLossLink {
     }
 
     public Message deliver() throws IOException {
-        byte[] rec = new byte[1024]; // TODO: is this size enough?
+        byte[] rec = new byte[1024];
         DatagramPacket packet = new DatagramPacket(rec, rec.length);
         recSocket.receive(packet);
 

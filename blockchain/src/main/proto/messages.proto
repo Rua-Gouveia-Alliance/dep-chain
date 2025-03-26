@@ -11,6 +11,7 @@ enum MessageCode {
   WRITE      = 5;
   STATE      = 6;
   ACCEPT     = 7;
+  ACK        = 8;
 }
 
 // All messages will be encapsulated in this

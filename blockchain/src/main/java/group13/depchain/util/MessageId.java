@@ -1,8 +1,6 @@
 package group13.depchain.util;
 
-import java.io.Serializable;
-
-public class MessageId implements Serializable {
+public class MessageId {
 
     private int seq;
     private final int senderId;

@@ -20,7 +20,7 @@ public class AuthenticatedPerfectLink {
     public AuthenticatedPerfectLink(int listen_port, int id, SecretKey[] keys,
             ProcessAddress[] address_map) throws SocketException {
         this.id = new MessageId(id);
-        this.sp2p = new StubbornLink(listen_port, address_map);
+        this.sp2p = new StubbornLink(id, listen_port, address_map);
         this.delivered = new HashSet<>();
         this.keys = keys;
     }

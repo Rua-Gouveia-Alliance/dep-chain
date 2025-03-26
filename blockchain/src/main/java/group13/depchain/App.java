@@ -34,9 +34,7 @@ public class App {
         Scanner scanner = new Scanner(System.in);
         scanner.nextLine();
         scanner.close();
-        System.out.println("end.");
         member.end();
-        System.out.println("join.");
         member.join();
     }
 }

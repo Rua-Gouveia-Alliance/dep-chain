@@ -113,6 +113,7 @@ public class ConditionalCollect {
                 if (Util.verifyDS(message.toByteArray(), ds, this.publicKeys[sender])) {
                     this.messages.set(sender, message);
                     this.sigs[sender] = ds;
+                    System.out.println("[ConditionalCollect] Delivered DS");
                 }
 
                 if (countMessages(this.messages) < this.N - this.f || !predicate.C(this.messages))
@@ -124,6 +125,7 @@ public class ConditionalCollect {
                             .addSigs(ByteString.copyFrom(this.sigs[i]));
                 }
 
+                System.out.println("[ConditionalCollect] Sending COLLECTED");
                 CollectedMessage colMessage = colMessageBuilder.build();
                 Message.Builder builder = Message.newBuilder().setCode(MessageCode.COLLECTED)
                         .setMessage(colMessage.toByteString());

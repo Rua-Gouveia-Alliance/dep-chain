@@ -27,8 +27,8 @@ public class ByzantineConsensus {
     private final int id;
     private final int leaderId;
 
-    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate, int port,
-            SecretKey[] keys, PrivateKey privateKey, PublicKey[] publicKeys, ProcessAddress[] map)
+    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
+            PrivateKey privateKey, PublicKey[] publicKeys, AuthenticatedPerfectLink al)
             throws SocketException {
         this.epochstate = prevstate;
         this.written = new Block[N];
@@ -61,7 +61,7 @@ public class ByzantineConsensus {
             return false;
         };
 
-        this.al = new AuthenticatedPerfectLink(port, id, keys, map);
+        this.al = al;
         this.cc = new ConditionalCollect(privateKey, publicKeys, sound, N, id, leaderId, al);
 
         this.clear(this.written);
@@ -282,8 +282,10 @@ public class ByzantineConsensus {
 
     public void deliver() throws Exception {
         Message received = this.al.deliver();
-        if (received == null || received.getSender() >= this.N)
+        if (received == null || received.getSender() >= this.N) {
+            System.out.println("[ByzantineConsensus] NULL message");
             return;
+        }
 
         MessageCode code = received.getCode();
         if (code == MessageCode.DSMESSAGE) {
@@ -309,9 +311,5 @@ public class ByzantineConsensus {
             this.deliver();
 
         return this.decided;
-    }
-
-    public void close() {
-        this.al.close();
     }
 }

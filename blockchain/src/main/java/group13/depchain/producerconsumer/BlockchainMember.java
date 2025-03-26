@@ -9,6 +9,7 @@ import javax.crypto.SecretKey;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
+import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.consensus.Block;
 
@@ -48,10 +49,11 @@ public class BlockchainMember extends Thread {
             for (int i = 0; i < N; ++i)
                 map[i] = new ProcessAddress("localhost", 5000 + i);
 
+            AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, id, Ks, map);
             while (this.running.get()) {
                 System.out.println("[BlockchainMember] Starting BFT.");
                 ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
-                        new EpochState(), 5000 + this.id, Ks, KP, KUs, map);
+                        new EpochState(), KP, KUs, al);
 
                 Block prev = this.decided.top();
                 Block proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
@@ -87,9 +89,8 @@ public class BlockchainMember extends Thread {
                 System.out.println("[BlockchainMember] Decided: " + decided);
                 // if (this.id == 0 && proposed != "" && !Objects.equals(proposed, decided))
                 // this.pending.push(proposed);
-
-                bep.close();
             }
+            al.close();
         } catch (Exception e) {
             this.running.set(false);
         }
