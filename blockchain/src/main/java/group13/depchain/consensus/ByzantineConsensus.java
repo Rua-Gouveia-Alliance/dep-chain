@@ -8,8 +8,6 @@ import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
-import group13.depchain.util.ProcessAddress;
-import javax.crypto.SecretKey;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -237,6 +235,11 @@ public class ByzantineConsensus {
                     .setMessage(tmpval.toBlockMessage().toByteString());
             for (int i = 0; i < this.N; ++i)
                 al.send(i, builder);
+        } else {
+            Message.Builder builder = Message.newBuilder().setCode(MessageCode.ABORT)
+                    .setMessage(ByteString.copyFrom(new byte[0]));
+            for (int i = 0; i < this.N; ++i)
+                al.send(i, builder);
         }
     }
 
@@ -280,12 +283,18 @@ public class ByzantineConsensus {
             al.send(i, builder);
     }
 
+    private void deliverABORT(Message received) throws Exception {
+        if (received.getCode() != MessageCode.ABORT)
+            return;
+
+        System.out.println("[ByzantineConsensus] Delivered ABORT");
+        this.decided = new Block(true);
+    }
+
     public void deliver() throws Exception {
         Message received = this.al.deliver();
-        if (received == null || received.getSender() >= this.N) {
-            System.out.println("[ByzantineConsensus] NULL message");
+        if (received == null || received.getSender() >= this.N)
             return;
-        }
 
         MessageCode code = received.getCode();
         if (code == MessageCode.DSMESSAGE) {
@@ -298,6 +307,8 @@ public class ByzantineConsensus {
             this.deliverWRITE(received);
         } else if (code == MessageCode.READ) {
             this.deliverREAD(received);
+        } else if (code == MessageCode.ABORT) {
+            this.deliverABORT(received);
         } else {
             System.out.println("[ByzantineConsensus] Unrecognized message");
         }

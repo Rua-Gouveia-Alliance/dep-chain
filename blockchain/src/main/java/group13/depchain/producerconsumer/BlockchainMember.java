@@ -49,15 +49,16 @@ public class BlockchainMember extends Thread {
             for (int i = 0; i < N; ++i)
                 map[i] = new ProcessAddress("localhost", 5000 + i);
 
+            Block proposed = null;
             AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, id, Ks, map);
             while (this.running.get()) {
                 System.out.println("[BlockchainMember] Starting BFT.");
                 ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
                         new EpochState(), KP, KUs, al);
 
-                Block prev = this.decided.top();
-                Block proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
-                if (this.id == 0) {
+                if (this.id == 0 && proposed == null) {
+                    Block prev = this.decided.top();
+                    proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
                     while (!proposed.full()) {
                         while (this.pending.length() == 0) {
                             synchronized (this.pending.cond) {
@@ -71,15 +72,14 @@ public class BlockchainMember extends Thread {
 
                 // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com a
                 // chave public do recetor
-                // TODO: Perguntar ao professor se precisamos de ter cuidado com os estados antigos.
-                // O run so termina se decidirmos algo. A unica forma de nao decidirmos e se
-                // tivermos
-                // mais de f membros faulty ou se o lider em si for faulty. Como nao temos de
-                // garantir
-                // liveness em nenhum destes casos acho que isto é tranquilo.
                 Block decided = bep.run(proposed);
                 if (!this.running.get())
                     break;
+
+                if (decided.aborted()) {
+                    System.out.println("[BlockchainMember] Consensus aborted.");
+                    continue;
+                }
 
                 this.decided.push(decided);
                 synchronized (this.decided.cond) {
@@ -87,8 +87,7 @@ public class BlockchainMember extends Thread {
                 }
 
                 System.out.println("[BlockchainMember] Decided: " + decided);
-                // if (this.id == 0 && proposed != "" && !Objects.equals(proposed, decided))
-                // this.pending.push(proposed);
+                proposed = null;
             }
             al.close();
         } catch (Exception e) {

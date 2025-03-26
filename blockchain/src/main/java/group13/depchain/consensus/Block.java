@@ -12,6 +12,7 @@ public class Block {
     private byte[] block_hash;
     private final int capacity = 2;
     private final boolean isNullBlock;
+    private final boolean aborted;
     private final byte[] previous_block_hash;
     private final List<String /* TODO: Classe Transaction */> transactions;
 
@@ -20,6 +21,15 @@ public class Block {
         this.previous_block_hash = new byte[0];
         this.transactions = new ArrayList<>();
         this.isNullBlock = true;
+        this.aborted = false;
+    }
+
+    public Block(boolean aborted) {
+        this.block_hash = new byte[0];
+        this.previous_block_hash = new byte[0];
+        this.transactions = new ArrayList<>();
+        this.isNullBlock = false;
+        this.aborted = aborted;
     }
 
     public Block(byte[] previous_block_hash) {
@@ -27,6 +37,7 @@ public class Block {
         this.previous_block_hash = previous_block_hash;
         this.transactions = new ArrayList<>();
         this.isNullBlock = false;
+        this.aborted = false;
     }
 
     public Block(BlockMessage message) {
@@ -34,6 +45,11 @@ public class Block {
         this.previous_block_hash = message.getPreviousBlockHash().toByteArray();
         this.transactions = message.getTransactionsList();
         this.isNullBlock = message.getIsNullBlock();
+        this.aborted = false;
+    }
+
+    public boolean aborted() {
+        return this.aborted;
     }
 
     public boolean isNullBlock() {
