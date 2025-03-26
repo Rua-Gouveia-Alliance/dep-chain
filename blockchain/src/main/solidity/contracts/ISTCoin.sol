@@ -10,15 +10,30 @@ interface IBlacklist {
 contract ISTCoin is ERC20 {
     IBlacklist private blacklist;
 
-    constructor (uint256 totalSupply, address blacklistAddress) ERC20("ISTCoint", "IST") {
+    constructor(
+        uint256 totalSupply,
+        address blacklistAddress
+    ) ERC20("ISTCoint", "IST") {
         blacklist = IBlacklist(blacklistAddress);
         _mint(msg.sender, totalSupply * 10 ** decimals());
     }
 
-    function transferFrom(address from, address to, uint256 amount) public override returns(bool) {
-        require(blacklist.isBlacklisted(from), "Sender is blacklisted");
-        require(blacklist.isBlacklisted(to), "Receiver is blacklisted");
-        super.transferFrom(from,to,amount);
-        return true;
+    function transfer(
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        require(!blacklist.isBlacklisted(msg.sender), "Sender is blacklisted");
+        require(!blacklist.isBlacklisted(to), "Receiver is blacklisted");
+        return super.transferFrom(from, to, amount);
+    }
+
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) public override returns (bool) {
+        require(!blacklist.isBlacklisted(from), "Sender is blacklisted");
+        require(!blacklist.isBlacklisted(to), "Receiver is blacklisted");
+        return super.transferFrom(from, to, amount);
     }
 }
