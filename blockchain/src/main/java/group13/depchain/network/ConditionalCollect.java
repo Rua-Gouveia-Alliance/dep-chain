@@ -7,6 +7,8 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 import group13.depchain.crypto.Util;
 import group13.depchain.Messages.*;
 
@@ -19,6 +21,8 @@ public class ConditionalCollect {
     private final int f;
     private final int id;
     private final int leaderId;
+    private final Timer timer;
+    private boolean startedTimer;
     private final AuthenticatedPerfectLink ap2p;
     private final PrivateKey privateKey;
     private final PublicKey[] publicKeys;
@@ -43,6 +47,8 @@ public class ConditionalCollect {
         this.f = (N - 1) / 3;
         this.id = id;
         this.leaderId = leaderId;
+        this.timer = new Timer();
+        this.startedTimer = false;
         this.ap2p = ap2p;
         this.privateKey = privateKey;
         this.publicKeys = publicKeys;
@@ -52,7 +58,22 @@ public class ConditionalCollect {
             this.messages.add(Message.newBuilder().setCode(MessageCode.NULL).build());
     }
 
-    public void send(int process, Message message) throws Exception {
+    private synchronized void sendCollected() throws Exception {
+        CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
+        for (int i = 0; i < this.N; ++i) {
+            colMessageBuilder.addMessages(this.messages.get(i))
+                    .addSigs(ByteString.copyFrom(this.sigs[i]));
+        }
+
+        System.out.println("[ConditionalCollect] Sending COLLECTED");
+        CollectedMessage colMessage = colMessageBuilder.build();
+        Message.Builder builder = Message.newBuilder().setCode(MessageCode.COLLECTED)
+                .setMessage(colMessage.toByteString());
+        for (int i = 0; i < this.N; ++i)
+            this.ap2p.send(i, builder);
+    }
+
+    public synchronized void send(int process, Message message) throws Exception {
         byte[] ds = Util.ds(message.toByteArray(), this.privateKey);
 
         if (this.id == process) {
@@ -68,9 +89,10 @@ public class ConditionalCollect {
         this.ap2p.send(process, builder);
     }
 
-    public void deliverCOLLECTED(Message received) throws Exception {
+    public synchronized void deliverCOLLECTED(Message received) throws Exception {
         MessageCode code = received.getCode();
-        if (code == MessageCode.COLLECTED && !this.collected) {
+        if (code == MessageCode.COLLECTED && received.getSender() == this.leaderId
+                && !this.collected) {
             try {
                 CollectedMessage colMessage = CollectedMessage.parseFrom(received.getMessage());
                 if (collected || countMessages(colMessage.getMessagesList()) < this.N - f
@@ -97,9 +119,8 @@ public class ConditionalCollect {
         }
     }
 
-    public void deliverDS(Message received) throws Exception {
+    public synchronized void deliverDS(Message received) throws Exception {
         MessageCode code = received.getCode();
-        // TODO;: Timer para esperar por mais repostas no CC antes de terminar e dar collected.
         if (this.id == this.leaderId && code == MessageCode.DSMESSAGE && !this.collected) {
             try {
                 DSMessage dsMessage = DSMessage.parseFrom(received.getMessage());
@@ -115,38 +136,36 @@ public class ConditionalCollect {
                 if (countMessages(this.messages) < this.N - this.f || !predicate.C(this.messages))
                     return;
 
-                CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
-                for (int i = 0; i < this.N; ++i) {
-                    colMessageBuilder.addMessages(this.messages.get(i))
-                            .addSigs(ByteString.copyFrom(this.sigs[i]));
+                if (!this.startedTimer) {
+                    System.out.println("[ConditionalCollect] Starting timer");
+                    this.startedTimer = true;
+                    timer.schedule(new TimerTask() {
+                        @Override
+                        public void run() {
+                            try {
+                                sendCollected();
+                            } catch (Exception e) {
+                                System.out.println("[sendCollected] Unexpected error. Exiting.");
+                                System.exit(1);
+                            }
+                        }
+                    }, 5000);
                 }
-
-                System.out.println("[ConditionalCollect] Sending COLLECTED");
-                CollectedMessage colMessage = colMessageBuilder.build();
-                Message.Builder builder = Message.newBuilder().setCode(MessageCode.COLLECTED)
-                        .setMessage(colMessage.toByteString());
-                for (int i = 0; i < this.N; ++i)
-                    this.ap2p.send(i, builder);
-
-                // No need to wait for our own message
-                if (this.id == this.leaderId)
-                    this.collected = true;
-
             } catch (InvalidProtocolBufferException e) {
                 return;
             }
         }
     }
 
-    public List<Message> getMessages() {
+    public synchronized List<Message> getMessages() {
         return this.messages;
     }
 
-    public boolean getCollected() {
+    public synchronized boolean getCollected() {
         return this.collected;
     }
 
-    public void reset() {
+    public synchronized void reset() {
         this.collected = false;
         this.sigs = new byte[1024][N];
         for (int i = 0; i < N; i++)
