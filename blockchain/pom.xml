@@ -10,6 +10,13 @@
 
     <artifactId>blockchain</artifactId>
 
+    <repositories>
+        <repository>
+            <id>hyperledger-besu</id>
+            <url>https://hyperledger.jfrog.io/artifactory/besu-maven</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>group13.depchain</groupId>
@@ -28,10 +35,23 @@
             <artifactId>tuweni-crypto</artifactId>
             <version>${tuweni.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.apache.tuweni</groupId>
             <artifactId>tuweni-bytes</artifactId>
             <version>${tuweni.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hyperledger.besu</groupId>
+            <artifactId>evm</artifactId>
+            <version>25.2.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hyperledger.besu</groupId>
+            <artifactId>besu-datatypes</artifactId>
+            <version>25.2.1</version>
         </dependency>
 
         <dependency>
