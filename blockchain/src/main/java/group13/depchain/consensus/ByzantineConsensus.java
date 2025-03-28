@@ -8,6 +8,8 @@ import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
+import group13.depchain.blockchain.Block;
+
 import java.security.PrivateKey;
 import java.security.PublicKey;
 
@@ -172,9 +174,9 @@ public class ByzantineConsensus {
 
         System.out.println("[ByzantineConsensus] Delivered READ");
 
-        StateMessage.Builder stateMessageBuilder =
-                StateMessage.newBuilder().setVal(this.epochstate.getVal().toBlockMessage())
-                        .setValts(this.epochstate.getValts());
+        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                .setVal(this.epochstate.getVal().toBlockMessage())
+                .setValts(this.epochstate.getValts());
 
         for (WSEntry e : this.epochstate.getWriteset())
             stateMessageBuilder.addWriteset(e);

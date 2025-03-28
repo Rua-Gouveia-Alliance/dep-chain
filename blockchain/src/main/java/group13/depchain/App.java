@@ -3,7 +3,8 @@ package group13.depchain;
 import group13.depchain.producerconsumer.BlockchainMember;
 import java.util.ArrayList;
 import java.util.Scanner;
-import group13.depchain.consensus.Block;
+
+import group13.depchain.blockchain.Block;
 import group13.depchain.producerconsumer.BlockchainClientManager;
 import group13.depchain.producerconsumer.ConcurrentQueue;
 
@@ -21,8 +22,7 @@ public class App {
         if (id == 0) {
             int clientN = Integer.valueOf(args[1]);
             for (int i = 0; i < clientN; ++i) {
-                BlockchainClientManager manager =
-                        new BlockchainClientManager(i, decided, pending);
+                BlockchainClientManager manager = new BlockchainClientManager(i, decided, pending);
                 manager.start();
                 clients.add(manager);
             }

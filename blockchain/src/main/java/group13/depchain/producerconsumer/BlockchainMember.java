@@ -6,12 +6,13 @@ import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.crypto.SecretKey;
+
+import group13.depchain.blockchain.Block;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.util.ProcessAddress;
-import group13.depchain.consensus.Block;
 
 public class BlockchainMember extends Thread {
     private final int N;
@@ -70,7 +71,8 @@ public class BlockchainMember extends Thread {
                     proposed.hash();
                 }
 
-                // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com a
+                // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
+                // a
                 // chave public do recetor
                 Block decided = bep.run(proposed);
                 if (!this.running.get())

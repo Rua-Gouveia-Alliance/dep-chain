@@ -1,4 +1,4 @@
-package group13.depchain.consensus;
+package group13.depchain.blockchain;
 
 import java.util.List;
 import java.util.Objects;
@@ -114,16 +114,15 @@ public class Block {
             return false;
 
         String prevHash = Base64.getEncoder().encodeToString(this.previous_block_hash);
-        String otherPrevHash =
-                Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
+        String otherPrevHash = Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
         return Objects.equals(prevHash, otherPrevHash);
     }
 
     public BlockMessage toBlockMessage() {
-        BlockMessage.Builder messageBuilder =
-                BlockMessage.newBuilder().setBlockHash(ByteString.copyFrom(this.block_hash))
-                        .setPreviousBlockHash(ByteString.copyFrom(this.previous_block_hash))
-                        .setIsNullBlock(this.isNullBlock);
+        BlockMessage.Builder messageBuilder = BlockMessage.newBuilder()
+                .setBlockHash(ByteString.copyFrom(this.block_hash))
+                .setPreviousBlockHash(ByteString.copyFrom(this.previous_block_hash))
+                .setIsNullBlock(this.isNullBlock);
         for (String tx : this.transactions)
             messageBuilder.addTransactions(tx);
         return messageBuilder.build();

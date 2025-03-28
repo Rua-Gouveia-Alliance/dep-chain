@@ -9,7 +9,7 @@ import java.net.Socket;
 import java.util.Base64;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
-import group13.depchain.consensus.Block;
+import group13.depchain.blockchain.Block;
 
 public class BlockchainClientManager extends Thread {
     private final int clientId;
@@ -31,8 +31,7 @@ public class BlockchainClientManager extends Thread {
             System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
             System.out.println("[ClientManager] Client connected.");
-            BufferedReader in =
-                    new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
             while (true) {
