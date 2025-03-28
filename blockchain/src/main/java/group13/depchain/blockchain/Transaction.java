@@ -4,6 +4,7 @@ import java.math.BigInteger;
 
 public class Transaction {
 
+    // TODO: add contract deployment?
     public enum TransactionType {
         TRANSFER,
         CONTRACT_EXECUTION

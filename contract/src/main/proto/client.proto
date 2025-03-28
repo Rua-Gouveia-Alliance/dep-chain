@@ -2,8 +2,19 @@ syntax = "proto3";
 
 package group13.depchain;
 
+enum TransactionType {
+  TRANSFER = 1;
+  CONTRACT_DEPLOYMENT = 2;
+}
+
 message Request {
-  string val = 1;
+  string from = 1;
+  string to = 2;
+  int64 amount = 3;
+  int64 nonce = 4;
+  TransactionType type = 5;
+  string payload = 6;
+  bytes signature = 7;
 }
 
 message Response {
