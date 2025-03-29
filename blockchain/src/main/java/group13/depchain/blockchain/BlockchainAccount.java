@@ -17,16 +17,31 @@ public abstract class BlockchainAccount {
         return balance;
     }
 
-    public void deposit(long amount) {
-        assert amount >= 0 : "Cannot deposit negative amount!";
-        assert amount + this.balance >= 0 : "Balance cannot be negative!";
+    public boolean deposit(long amount) {
+        if (amount >= 0) {
+            System.out.println("Cannot deposit negative amount!");
+            return false;
+        }
+        if (amount + this.balance >= 0) {
+            System.out.println("Balance cannot be negative!");
+            return false;
+        }
         this.balance += amount;
+        return true;
     }
 
-    public void withraw(long amount) {
-        assert amount >= 0 : "Cannot withdraw negative amount!";
-        assert this.balance - amount >= 0 : "Balance cannot be negative!";
+    public boolean withdraw(long amount) {
+        if (amount >= 0) {
+            System.out.println("Cannot withdraw negative amount!");
+            return false;
+        }
+        if (amount + this.balance >= 0) {
+            System.out.println("Balance cannot be negative!");
+            return false;
+        }
+
         this.balance -= amount;
+        return true;
     }
 
     public abstract void executeTransaction(Transaction transaction);
