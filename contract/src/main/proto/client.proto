@@ -3,8 +3,8 @@ syntax = "proto3";
 package group13.depchain;
 
 enum TransactionType {
-  TRANSFER = 1;
-  CONTRACT_DEPLOYMENT = 2;
+  TRANSFER = 0;
+  CONTRACT_EXECUTION = 1;
 }
 
 message Request {
