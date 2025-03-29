@@ -41,7 +41,7 @@ public class BlockchainClientManager extends Thread {
 
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
-                    String val = request.getVal();
+                    String val = request.getPayload();
                     System.out.println("[ClientManager] Received request for value: " + val);
 
                     this.pending.push(val);
