@@ -14,7 +14,7 @@ public class Block {
     private final boolean isNullBlock;
     private final boolean aborted;
     private final byte[] previous_block_hash;
-    private final List<String /* TODO: Classe Transaction */> transactions;
+    private final List<Transaction> transactions;
 
     public Block() {
         this.block_hash = new byte[0];

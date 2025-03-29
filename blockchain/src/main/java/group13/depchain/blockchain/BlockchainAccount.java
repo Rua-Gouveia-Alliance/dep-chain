@@ -1,24 +1,32 @@
 package group13.depchain.blockchain;
 
 public abstract class BlockchainAccount {
-    protected String _address;
-    protected int _balance = 0;     // balance should always be non-negative
 
-    public BlockchainAccount(String address, int balance) {
-        this._address = address;
-        this._balance = balance;
+    protected final String address;
+    protected long balance = 0; // balance should always be non-negative
+
+    public BlockchainAccount(String address) {
+        this.address = address;
     }
 
     public String getAddress() {
-        return _address;
+        return address;
     }
 
-    public int getBalance() {
-        return _balance;
+    public long getBalance() {
+        return balance;
     }
 
-    public void deposit(int amount) {
-        this._balance += amount;
+    public void deposit(long amount) {
+        assert amount >= 0 : "Cannot deposit negative amount!";
+        assert amount + this.balance >= 0 : "Balance cannot be negative!";
+        this.balance += amount;
+    }
+
+    public void withraw(long amount) {
+        assert amount >= 0 : "Cannot withdraw negative amount!";
+        assert this.balance - amount >= 0 : "Balance cannot be negative!";
+        this.balance -= amount;
     }
 
     public abstract void executeTransaction(Transaction transaction);
