@@ -2,17 +2,12 @@ syntax = "proto3";
 
 package group13.depchain;
 
-enum TransactionType {
-  TRANSFER = 0;
-  CONTRACT_EXECUTION = 1;
-}
-
 message Request {
   string from = 1;
   string to = 2;
   int64 amount = 3;
   int64 nonce = 4;
-  TransactionType type = 5;
+  bool isTransfer = 5;
   string payload = 6;
   bytes signature = 7;
 }

@@ -1,23 +1,25 @@
 package group13.depchain.producerconsumer;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.Base64;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
 import group13.depchain.blockchain.Block;
+import group13.depchain.blockchain.Transaction;
+import group13.depchain.crypto.KeyManager;
 
 public class BlockchainClientManager extends Thread {
     private final int clientId;
     private final ConcurrentQueue<Block> decided;
-    private final ConcurrentQueue<String> pending;
+    private final ConcurrentQueue<Transaction> pending;
 
     public BlockchainClientManager(int clientId, ConcurrentQueue<Block> decided,
-            ConcurrentQueue<String> pending) {
+            ConcurrentQueue<Transaction> pending) {
         this.clientId = clientId;
         this.decided = decided;
         this.pending = pending;
@@ -25,8 +27,8 @@ public class BlockchainClientManager extends Thread {
 
     @Override
     public void run() {
-
         try {
+            PublicKey ku = KeyManager.getClientPublicKey(this.clientId, "./keys/clients");
             ServerSocket serverSocket = new ServerSocket(6000 + this.clientId);
             System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
@@ -41,10 +43,11 @@ public class BlockchainClientManager extends Thread {
 
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
-                    String val = request.getPayload();
-                    System.out.println("[ClientManager] Received request for value: " + val);
+                    Transaction tx = Transaction.fromRequest(request);
 
-                    this.pending.push(val);
+                    System.out.println("[ClientManager] Received request for transaction: " + tx.toString());
+
+                    this.pending.push(tx);
                     synchronized (this.pending.cond) {
                         this.pending.notifyChange();
                     }
@@ -59,8 +62,8 @@ public class BlockchainClientManager extends Thread {
                     Response.Builder response = Response.newBuilder();
                     this.decided.lock();
                     for (Block e : this.decided.getContainer())
-                        for (String tx : e.getTransactions())
-                            response.addEntries(tx);
+                        for (Transaction t : e.getTransactions())
+                            response.addEntries(t.toString());
                     this.decided.unlock();
 
                     out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
@@ -73,7 +76,7 @@ public class BlockchainClientManager extends Thread {
             out.close();
             clientSocket.close();
             serverSocket.close();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }

@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.crypto.SecretKey;
 
 import group13.depchain.blockchain.Block;
+import group13.depchain.blockchain.Transaction;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
@@ -19,10 +20,10 @@ public class BlockchainMember extends Thread {
     private final int id;
     private AtomicBoolean running = new AtomicBoolean(true);
     private final ConcurrentQueue<Block> decided;
-    private final ConcurrentQueue<String> pending;
+    private final ConcurrentQueue<Transaction> pending;
 
     public BlockchainMember(int id, int N, ConcurrentQueue<Block> decided,
-            ConcurrentQueue<String> pending) {
+            ConcurrentQueue<Transaction> pending) {
         this.id = id;
         this.N = N;
         this.decided = decided;
@@ -73,8 +74,7 @@ public class BlockchainMember extends Thread {
                 }
 
                 // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
-                // a
-                // chave public do recetor
+                // a chave public do recetor
                 Block decided = bep.run(proposed);
                 if (!this.running.get())
                     break;

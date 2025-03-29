@@ -1,7 +1,5 @@
 package group13.depchain.blockchain;
 
-import group13.depchain.blockchain.Transaction.TransactionType;
-
 public class EOAAccount extends BlockchainAccount {
 
     public EOAAccount(String address, int balance, String privateKey) {
@@ -10,7 +8,7 @@ public class EOAAccount extends BlockchainAccount {
 
     @Override
     public void executeTransaction(Transaction transaction) {
-        assert (transaction.getType() == TransactionType.TRANSFER);
+        assert (transaction.isTransfer());
         // TODO
     }
 }

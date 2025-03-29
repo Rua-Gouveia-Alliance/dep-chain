@@ -1,7 +1,5 @@
 package group13.depchain.blockchain;
 
-import group13.depchain.blockchain.Transaction.TransactionType;
-
 public class ContractAccount extends BlockchainAccount {
     private String contractCode;
 
@@ -13,7 +11,7 @@ public class ContractAccount extends BlockchainAccount {
 
     @Override
     public void executeTransaction(Transaction transaction) {
-        assert (transaction.getType() == TransactionType.CONTRACT_EXECUTION);
+        assert (!transaction.isTransfer());
         // TODO HyperLedger Besu EVM executor
     }
 }

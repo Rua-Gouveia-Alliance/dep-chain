@@ -54,7 +54,7 @@ public class BlockchainClient {
         requestBuilder.setTo(to);
         requestBuilder.setAmount(amount);
         requestBuilder.setNonce(nonce);
-        requestBuilder.setType(isTransfer ? TransactionType.TRANSFER : TransactionType.CONTRACT_EXECUTION);
+        requestBuilder.setIsTransfer(isTransfer);
         requestBuilder.setPayload(payload);
         requestBuilder.setSignature(ByteString.copyFrom(genSignature(isTransfer, to, amount, nonce, payload)));
 

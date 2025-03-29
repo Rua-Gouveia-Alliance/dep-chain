@@ -43,7 +43,13 @@ public class Block {
     public Block(BlockMessage message) {
         this.block_hash = message.getBlockHash().toByteArray();
         this.previous_block_hash = message.getPreviousBlockHash().toByteArray();
-        this.transactions = message.getTransactionsList();
+
+        this.transactions = new ArrayList<>();
+        for (TransactionMessage txMsg : message.getTransactionsList()) {
+            Transaction tx = Transaction.fromTransactionMessage(txMsg);
+            this.transactions.add(tx);
+        }
+
         this.isNullBlock = message.getIsNullBlock();
         this.aborted = false;
     }
@@ -60,12 +66,12 @@ public class Block {
         return this.transactions.size() == this.capacity;
     }
 
-    public void append(String tx) {
+    public void append(Transaction tx) {
         assert !this.full() : "Appending to a full block!";
         this.transactions.add(tx);
     }
 
-    public List<String> getTransactions() {
+    public List<Transaction> getTransactions() {
         return this.transactions;
     }
 
@@ -79,7 +85,7 @@ public class Block {
 
     public void hash() {
         assert this.full() : "Hashing a block that's not full!";
-        this.block_hash = Util.hash(String.join("", this.transactions));
+        this.block_hash = Util.hash(String.join("", this.transactions.toString()));
     }
 
     public boolean eq(Block other) {
@@ -123,16 +129,18 @@ public class Block {
                 .setBlockHash(ByteString.copyFrom(this.block_hash))
                 .setPreviousBlockHash(ByteString.copyFrom(this.previous_block_hash))
                 .setIsNullBlock(this.isNullBlock);
-        for (String tx : this.transactions)
-            messageBuilder.addTransactions(tx);
+        for (Transaction tx : this.transactions) {
+            TransactionMessage txMsg = Transaction.toTransactionMessage(tx);
+            messageBuilder.addTransactions(txMsg);
+        }
         return messageBuilder.build();
     }
 
     @Override
     public String toString() {
         String str = "{ null: " + this.isNullBlock + ", txs: [ ";
-        for (String tx : this.transactions)
-            str += tx + " ";
+        for (Transaction tx : this.transactions)
+            str += tx.toString() + " ";
         str += "]";
         if (!this.isNullBlock) {
             str += ", block_hash: " + Base64.getEncoder().encodeToString(this.block_hash) + " , ";

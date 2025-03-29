@@ -14,7 +14,7 @@ public class App {
         int id = Integer.valueOf(args[0]), N = 6;
         ArrayList<BlockchainClientManager> clients = new ArrayList<>();
         ConcurrentQueue<Block> decided = new ConcurrentQueue<>();
-        ConcurrentQueue<String> pending = new ConcurrentQueue<>();
+        ConcurrentQueue<Transaction> pending = new ConcurrentQueue<>();
 
         BlockchainMember member = new BlockchainMember(id, N, decided, pending);
         member.start();

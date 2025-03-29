@@ -23,10 +23,20 @@ message Message {
   bytes message    = 4;
 }
 
+message TransactionMessage {
+  string from = 1;
+  string to = 2;
+  int64 amount = 3;
+  int64 nonce = 4;
+  bool is_transfer = 5;
+  string payload = 6;
+  bytes signature = 7;
+}
+
 message BlockMessage {
   bytes blockHash = 1;
   bytes previousBlockHash = 2;
-  repeated string transactions = 3;
+  repeated TransactionMessage transactions = 3;
   bool isNullBlock = 4;
 }
 
