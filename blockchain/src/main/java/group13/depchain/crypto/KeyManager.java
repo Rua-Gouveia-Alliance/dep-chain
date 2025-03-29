@@ -8,6 +8,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.SecureRandom;
+import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
@@ -17,7 +19,7 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class KeyManager {
 
-    public static void newKeyPair(Path file_ku, Path file_kp) throws Exception {
+    public static void generateMemberKeyPair(Path file_ku, Path file_kp) throws Exception {
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
@@ -28,7 +30,7 @@ public class KeyManager {
         Files.write(file_kp, privateKey.getBytes());
     }
 
-    public static void newSecretKey(Path file) throws Exception {
+    public static void generateSecretKey(Path file) throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
         keyGenerator.init(256);
         SecretKey secretKey = keyGenerator.generateKey();
@@ -56,20 +58,20 @@ public class KeyManager {
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
-    public static void generateKeys(int N, String dir) throws Exception {
+    public static void generateMemberKeys(int N, String dir) throws Exception {
         for (int i = 0; i < N; i++) {
-            newKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i));
+            generateMemberKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i));
             for (int j = i; j < N; j++) {
-                newSecretKey(Paths.get(dir, "k_" + i + "_" + j));
+                generateSecretKey(Paths.get(dir, "k_" + i + "_" + j));
             }
         }
     }
 
-    public static PrivateKey getPrivateKey(int p, String dir) throws Exception {
+    public static PrivateKey getMemberPrivateKey(int p, String dir) throws Exception {
         return loadPrivateKey(Paths.get(dir, "kp_" + p));
     }
 
-    public static PublicKey[] getPublicKeys(int N, String dir) throws Exception {
+    public static PublicKey[] getMemberPublicKeys(int N, String dir) throws Exception {
         PublicKey[] KUs = new PublicKey[N];
         for (int i = 0; i < N; i++) {
             KUs[i] = loadPublicKey(Paths.get(dir, "ku_" + i));
@@ -77,7 +79,7 @@ public class KeyManager {
         return KUs;
     }
 
-    public static SecretKey[] getSecretKeys(int N, int p, String dir) throws Exception {
+    public static SecretKey[] getMemberSecretKeys(int N, int p, String dir) throws Exception {
         SecretKey[] Ks = new SecretKey[N];
         for (int i = 0; i < N; i++) {
             if (i < p)
@@ -86,6 +88,40 @@ public class KeyManager {
                 Ks[i] = loadSecretKey(Paths.get(dir, "k_" + p + "_" + i));
         }
         return Ks;
+    }
+
+    public static void generateClientKeyPair(Path file_ku, Path file_kp) throws Exception {
+        // This is based on how Bitcoin and Ethereum generate their keys using secp256k1
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
+        ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256k1");
+        keyPairGenerator.initialize(ecSpec, new SecureRandom());
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+
+        String privateKey = Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
+        String publicKey = Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
+
+        Files.write(file_ku, publicKey.getBytes());
+        Files.write(file_kp, privateKey.getBytes());
+    }
+
+    public static void generateClientKeys(int N, String dir) throws Exception {
+        for (int i = 0; i < N; i++) {
+            generateMemberKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i));
+            for (int j = i; j < N; j++) {
+                generateSecretKey(Paths.get(dir, "k_" + i + "_" + j));
+            }
+        }
+    }
+
+    public static PublicKey getClientPublicKey(int n, String dir) throws Exception {
+        Path file_ku = Paths.get(dir, "ku_" + n);
+        byte[] publicKeyBytes = Base64.getDecoder().decode(Files.readAllBytes(file_ku));
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+        PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
+
+        return publicKey;
     }
 
 }

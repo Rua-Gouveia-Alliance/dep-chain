@@ -4,9 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
@@ -15,7 +13,6 @@ import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
 import java.util.List;
-import java.util.Objects;
 import java.util.Scanner;
 
 import com.google.protobuf.ByteString;
@@ -70,8 +67,8 @@ public class BlockchainClient {
         PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
 
-        PublicKey publicKey = getPublicKeyFromSomewhere(id); // TODO replace with actual key retrieval
-        PrivateKey privateKey = getPrivateKeyFromSomewhere(id); // TODO replace with actual key retrieval
+        PublicKey publicKey = WalletUtils.loadPublicKey(id, "./keys/clients");
+        PrivateKey privateKey = WalletUtils.loadPrivateKey(id, "./keys/clients");
         String address = WalletUtils.getAddressFromPublicKey(publicKey);
         BlockchainClient client = new BlockchainClient(privateKey, address);
 

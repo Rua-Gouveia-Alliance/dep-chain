@@ -3,6 +3,7 @@ package group13.depchain.crypto;
 import javax.crypto.SecretKey;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Mac;
 
@@ -12,11 +13,16 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.Signature;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
 
 public class Util {
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     public static byte[] mac(byte[] msg, SecretKey key) throws Exception {
         Mac mac = Mac.getInstance("HmacSHA256");

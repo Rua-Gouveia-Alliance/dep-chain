@@ -1,14 +1,18 @@
 package group13.depchain;
 
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.security.SecureRandom;
 import java.security.Security;
 import java.security.interfaces.ECPublicKey;
-import java.security.spec.ECGenParameterSpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
+import java.util.Base64;
 import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -16,14 +20,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 public class WalletUtils {
     static {
         Security.addProvider(new BouncyCastleProvider());
-    }
-
-    public static KeyPair generateSecp256k1KeyPair() throws Exception {
-        // This is based on how Bitcoin and Ethereum generate their keys using secp256k1
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
-        ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256k1");
-        keyPairGenerator.initialize(ecSpec, new SecureRandom());
-        return keyPairGenerator.generateKeyPair();
     }
 
     public static String getAddressFromPublicKey(PublicKey publicKey) {
@@ -55,5 +51,27 @@ public class WalletUtils {
         int start = Math.max(0, bytes.length - 32);
         System.arraycopy(bytes, start, result, 32 - (bytes.length - start), bytes.length - start);
         return result;
+    }
+
+    public static PublicKey loadPublicKey(int n, String dir) throws Exception {
+        Path file_ku = Paths.get(dir, "ku_" + n);
+        byte[] publicKeyBytes = Base64.getDecoder().decode(Files.readAllBytes(file_ku));
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        X509EncodedKeySpec pubKeySpec = new X509EncodedKeySpec(publicKeyBytes);
+        PublicKey publicKey = keyFactory.generatePublic(pubKeySpec);
+
+        return publicKey;
+    }
+
+    public static PrivateKey loadPrivateKey(int n, String dir) throws Exception {
+        Path file_kp = Paths.get(dir, "kp_" + n);
+        byte[] privateKeyBytes = Base64.getDecoder().decode(Files.readAllBytes(file_kp));
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+        PrivateKey privateKey = keyFactory.generatePrivate(privKeySpec);
+
+        return privateKey;
     }
 }
