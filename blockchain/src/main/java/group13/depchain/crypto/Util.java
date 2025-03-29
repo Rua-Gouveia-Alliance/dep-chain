@@ -1,13 +1,20 @@
 package group13.depchain.crypto;
 
 import javax.crypto.SecretKey;
+
+import org.bouncycastle.jcajce.provider.digest.Keccak;
+
 import javax.crypto.Mac;
+
+import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.ECPublicKey;
+import java.util.Arrays;
 
 public class Util {
 
@@ -45,5 +52,45 @@ public class Util {
             System.exit(1);
             return null;
         }
+    }
+
+    public static boolean verifyTransactionDS(byte[] msg, byte[] signature, PublicKey publicKey) throws Exception {
+        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
+        ecdsaVerify.initVerify(publicKey);
+        ecdsaVerify.update(msg);
+        return ecdsaVerify.verify(signature);
+    }
+
+    public static boolean verifyTransactionAddress(String from, PublicKey publicKey) {
+        ECPublicKey ecPub = (ECPublicKey) publicKey;
+        BigInteger x = ecPub.getW().getAffineX();
+        BigInteger y = ecPub.getW().getAffineY();
+
+        // 64-byte uncompressed (no 0x04 prefix)
+        byte[] pubBytes = new byte[64];
+        byte[] xBytes = bigIntTo32Bytes(x);
+        byte[] yBytes = bigIntTo32Bytes(y);
+        System.arraycopy(xBytes, 0, pubBytes, 0, 32);
+        System.arraycopy(yBytes, 0, pubBytes, 32, 32);
+
+        Keccak.Digest256 keccak = new Keccak.Digest256();
+        byte[] hash = keccak.digest(pubBytes);
+        byte[] addressBytes = Arrays.copyOfRange(hash, 12, 32);
+
+        StringBuilder sb = new StringBuilder();
+        for (byte b : addressBytes) {
+            sb.append(String.format("%02x", b));
+        }
+        String expected_address = "0x" + sb.toString();
+
+        return from.equals(expected_address);
+    }
+
+    private static byte[] bigIntTo32Bytes(BigInteger value) {
+        byte[] bytes = value.toByteArray();
+        byte[] result = new byte[32];
+        int start = Math.max(0, bytes.length - 32);
+        System.arraycopy(bytes, start, result, 32 - (bytes.length - start), bytes.length - start);
+        return result;
     }
 }

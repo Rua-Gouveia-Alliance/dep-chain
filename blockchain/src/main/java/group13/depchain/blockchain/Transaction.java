@@ -1,6 +1,8 @@
 package group13.depchain.blockchain;
 
-import java.math.BigInteger;
+import java.security.PublicKey;
+
+import group13.depchain.crypto.Util;
 
 public class Transaction {
 
@@ -29,10 +31,19 @@ public class Transaction {
         this.signature = signature;
     }
 
-    public boolean validateSignature() {
-        // TODO
-        // Idea: implement it like ethereum (use public key recovery)
-        return false;
+    public boolean validateSignature(PublicKey senderPublicKey) throws Exception {
+        int type_id = type == TransactionType.TRANSFER ? 0 : 1;
+        String msg = from + to + amount + nonce + type_id + payload;
+        return Util.verifyTransactionDS(msg.getBytes(), signature, senderPublicKey);
+    }
+
+    public boolean validateFrom(PublicKey senderPublicKey) throws Exception {
+        return Util.verifyTransactionAddress(from, senderPublicKey);
+    }
+
+    public boolean validate(PublicKey senderPublicKey) throws Exception {
+        // We use Ethereum's way of signing transactions
+        return validateSignature(senderPublicKey) && validateFrom(senderPublicKey);
     }
 
     // Getters
