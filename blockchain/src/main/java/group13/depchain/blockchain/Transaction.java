@@ -19,9 +19,10 @@ public class Transaction {
     private final TransactionType type;
     private final String payload;
     private final byte[] signature;
+    private final String accountAddress;
 
     public Transaction(String from, String to, long amount, long nonce,
-            TransactionType type, String payload, byte[] signature) {
+            TransactionType type, String payload, byte[] signature, String accountAddress) {
         this.from = from;
         this.to = to;
         this.amount = amount;
@@ -29,6 +30,7 @@ public class Transaction {
         this.type = type;
         this.payload = payload;
         this.signature = signature;
+        this.accountAddress = accountAddress;
     }
 
     public boolean validateSignature(PublicKey senderPublicKey) throws Exception {
@@ -73,5 +75,9 @@ public class Transaction {
 
     public byte[] getSignature() {
         return signature;
+    }
+
+    public String getAccountAddress() {
+        return accountAddress;
     }
 }
