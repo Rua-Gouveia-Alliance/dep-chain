@@ -20,14 +20,17 @@ import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 
 public class ContractAccount extends BlockchainAccount {
-    private final String contractCode;
+    private String contractCode;
     private Dictionary<String, String> storage = new Hashtable<>();
 
-    public ContractAccount(/* String deployer, */ String address, String contractCode) {
+    public ContractAccount(String address, String contractCode) {
         super(address);
         this.contractCode = contractCode;
-        // this.deployContract(deployer); TODO if we want to allow contract deployment
-        // we have to execute constructor and get runtime bytecode automatically
+    }
+
+    public ContractAccount(String address, String deployCode, String deployer) {
+        super(address);
+        this.deploy(deployCode, deployer);
     }
 
     public String getContractCode() {
@@ -59,7 +62,7 @@ public class ContractAccount extends BlockchainAccount {
         Bytes callData = Bytes.fromHexString(transaction.getPayload());
 
         Address from = Address.fromHexString(transaction.getFrom());
-        Address to = Address.fromHexString(transaction.getTo());
+        Address to = Address.fromHexString(this.address);
 
         // create accounts with current balances
         world.createAccount(from, 0, Wei.of(state.getAccount(transaction.getTo()).getBalance()));
@@ -67,7 +70,7 @@ public class ContractAccount extends BlockchainAccount {
 
         // setup contract account
         MutableAccount contractAccount = (MutableAccount) world.get(to);
-        contractAccount.setCode(Bytes.fromHexString(this.contractCode));
+        contractAccount.setCode(code);
         for (Enumeration<String> e = storage.keys(); e.hasMoreElements();) {
             String keyHex = e.nextElement();
             String valueHex = this.storage.get(keyHex);
@@ -106,6 +109,43 @@ public class ContractAccount extends BlockchainAccount {
         // update balances
         this.balance = contractAccount.getBalance().toLong();
         state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
+    }
+
+    public void deploy(String deployCode, String deployer) {
+        SimpleWorld world = new SimpleWorld();
+        Bytes code = Bytes.fromHexString(contractCode);
+
+        Address from = Address.fromHexString(deployer);
+        Address to = Address.fromHexString(this.address);
+
+        world.createAccount(from, 0, Wei.of(0));
+        world.createAccount(to, 0, Wei.of(0));
+
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        PrintStream printStream = new PrintStream(output);
+        StandardJsonTracer tracer = new StandardJsonTracer(printStream, true, true, true, true);
+
+        EVMExecutor executor = EVMExecutor.evm(EvmSpecVersion.CANCUN);
+        executor.tracer(tracer);
+        executor.code(code);
+        executor.sender(from);
+        executor.receiver(to);
+        executor.worldUpdater(world.updater());
+        executor.commitWorldState();
+
+        // get return data (which is the runtime code)
+        Bytes runtimeCode = executor.execute();
+        this.contractCode = runtimeCode.toHexString();
+
+        MutableAccount contractAccount = (MutableAccount) world.get(to);
+        for (int i = 0; i < 64; i++) {
+            UInt256 key = UInt256.valueOf(i);
+            UInt256 value = contractAccount.getStorageValue(key);
+
+            if (!value.equals(UInt256.ZERO)) {
+                this.storage.put(key.toHexString(), value.toHexString());
+            }
+        }
     }
 
 }
