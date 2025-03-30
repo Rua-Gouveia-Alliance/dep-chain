@@ -18,6 +18,7 @@ public abstract class BlockchainAccount {
     }
 
     public boolean deposit(long amount) {
+        // TODO propagte error to the caller
         if (amount >= 0) {
             System.out.println("Cannot deposit negative amount!");
             return false;
@@ -31,6 +32,7 @@ public abstract class BlockchainAccount {
     }
 
     public boolean withdraw(long amount) {
+        // TODO propagte error to the caller
         if (amount >= 0) {
             System.out.println("Cannot withdraw negative amount!");
             return false;
@@ -44,6 +46,6 @@ public abstract class BlockchainAccount {
         return true;
     }
 
-    public abstract void executeTransaction(Transaction transaction);
+    public abstract void executeTransaction(BlockchainState state, Transaction transaction);
 
 }

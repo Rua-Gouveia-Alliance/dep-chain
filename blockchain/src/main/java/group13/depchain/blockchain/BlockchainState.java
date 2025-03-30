@@ -43,8 +43,8 @@ public class BlockchainState {
                     insertAccount(to);
                 }
 
-                from.executeTransaction(tx);
-                to.executeTransaction(tx);
+                from.executeTransaction(this, tx);
+                to.executeTransaction(this, tx);
             } else {
                 BlockchainAccount contract = getAccount(tx.getTo());
 
@@ -54,7 +54,7 @@ public class BlockchainState {
                     insertAccount(contract);
                 }
 
-                contract.executeTransaction(tx);
+                contract.executeTransaction(this, tx);
             }
         }
 

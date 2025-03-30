@@ -7,8 +7,8 @@ public class EOAAccount extends BlockchainAccount {
     }
 
     @Override
-    public void executeTransaction(Transaction transaction) {
-        assert (transaction.isTransfer());
+    public void executeTransaction(BlockchainState state, Transaction transaction) {
+        // assert (transaction.isTransfer()); TODO
 
         if (transaction.getFrom().equals(this.address)) {
             withdraw(transaction.getAmount());
