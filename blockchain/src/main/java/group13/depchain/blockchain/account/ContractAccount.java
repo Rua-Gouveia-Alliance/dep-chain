@@ -1,4 +1,4 @@
-package group13.depchain.blockchain;
+package group13.depchain.blockchain.account;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -15,6 +15,9 @@ import org.hyperledger.besu.evm.account.MutableAccount;
 import org.hyperledger.besu.evm.fluent.EVMExecutor;
 import org.hyperledger.besu.evm.fluent.SimpleWorld;
 import org.hyperledger.besu.evm.tracing.StandardJsonTracer;
+
+import group13.depchain.blockchain.BlockchainState;
+import group13.depchain.blockchain.Transaction;
 
 public class ContractAccount extends BlockchainAccount {
     private final String contractCode;

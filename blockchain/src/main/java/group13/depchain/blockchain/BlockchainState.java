@@ -12,6 +12,10 @@ import java.util.regex.Pattern;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import group13.depchain.blockchain.account.BlockchainAccount;
+import group13.depchain.blockchain.account.ContractAccount;
+import group13.depchain.blockchain.account.EOAAccount;
+
 import java.io.File;
 import java.io.IOException;
 

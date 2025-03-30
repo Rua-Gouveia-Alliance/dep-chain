@@ -1,4 +1,7 @@
-package group13.depchain.blockchain;
+package group13.depchain.blockchain.account;
+
+import group13.depchain.blockchain.BlockchainState;
+import group13.depchain.blockchain.Transaction;
 
 public class EOAAccount extends BlockchainAccount {
 
