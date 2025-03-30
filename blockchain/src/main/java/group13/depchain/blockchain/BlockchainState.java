@@ -1,6 +1,5 @@
 package group13.depchain.blockchain;
 
-import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -93,7 +92,7 @@ public class BlockchainState {
 
     public void save(Block block) {
         ObjectMapper objectMapper = new ObjectMapper();
-        File statesDirectory = new File("./states/");
+        File statesDirectory = new File("./blockchainStates/");
         if (!statesDirectory.exists()) {
             statesDirectory.mkdir();
         }

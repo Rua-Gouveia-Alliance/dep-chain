@@ -1,22 +1,12 @@
 # dep-chain
 
-## TODO
-
-1. Utilizador faz um pedido, através do client no terminal, de ou (1) transferir moedas ou (2) executar smartContract (ou visualizar estado da blockchain?)
-2. Pedido do utilizador é traduzido por uma biblioteca (stage 1) num service request que os blockchain members recebem, ou seja uma transação da blockchain
-3. Blockchain members adicionam a transação (por exemplo, transferir 5 ISTcoins de acc1 para acc2. Apenas o cliente associado à acc1 poderá realizar essa transação) 
-    ao próximo bloco (B1), se esta for válida.
-4. O bloco B1 terá já o estado do mundo em que as 5 ISTCoins saíram do balanço de acc1 e entraram no balanço de acc2.
-5. O processo líder, através do algoritmo Byzantine Epoch R/W, decidirá quando se deve "escrever" este bloco e transmitirá para todos os outros processos
-
 ## Compilation
 
 To generate the necessary sources, compile and package the code, run:
 
 ```
 $ mvn clean install -pl blockchain -am
-$ cd blockchain
-$ mvn web3j:generate-sources
+$ mvn -pl blockchain web3j:generate-sources
 ```
 
 ## Demo

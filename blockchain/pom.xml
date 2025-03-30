@@ -138,15 +138,14 @@
                 <artifactId>web3j-maven-plugin</artifactId>
                 <version>4.13.0</version>
                 <configuration>
-                    <sourceDestination>target/generated-sources/solidity/contracts</sourceDestination>
+                    <sourceDestination>${basedir}/target/generated-sources/solidity/contracts</sourceDestination>
                     <outputDirectory>
-                        <java>target/generated-sources/solidity/java</java>
-                        <bin>target/generated-sources/solidity/bin</bin>
+                        <bin>${basedir}/target/generated-sources/solidity/bin</bin>
                     </outputDirectory>
                     <nativeJavaType>true</nativeJavaType>
-                    <outputFormat>java,bin</outputFormat>
+                    <outputFormat>bin</outputFormat>
                     <soliditySourceFiles>
-                        <directory>src/main/solidity/contracts</directory>
+                        <directory>${basedir}/src/main/solidity/contracts/</directory>
                         <includes>
                             <include>**/*.sol</include>
                         </includes>
