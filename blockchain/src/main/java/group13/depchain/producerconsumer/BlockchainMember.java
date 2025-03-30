@@ -22,7 +22,7 @@ public class BlockchainMember extends Thread {
     private AtomicBoolean running = new AtomicBoolean(true);
     private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<Transaction> pending;
-    private final BlockchainState state = new BlockchainState();
+    private BlockchainState state;
 
     public BlockchainMember(int id, int N, ConcurrentQueue<Block> decided,
             ConcurrentQueue<Transaction> pending) {
@@ -30,6 +30,13 @@ public class BlockchainMember extends Thread {
         this.N = N;
         this.decided = decided;
         this.pending = pending;
+
+        try {
+            this.state = BlockchainState.load("./state");
+        } catch (Exception e) {
+            System.out.println("[BlockchainMember] Error loading state: " + e.getMessage());
+            this.state = new BlockchainState();
+        }
     }
 
     public void end() {

@@ -17,6 +17,10 @@ public abstract class BlockchainAccount {
         return balance;
     }
 
+    public void setBalance(long balance) {
+        this.balance = balance;
+    }
+
     public boolean deposit(long amount) {
         // TODO propagte error to the caller
         if (amount >= 0) {

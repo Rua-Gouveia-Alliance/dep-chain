@@ -4,7 +4,12 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -86,7 +91,7 @@ public class BlockchainState {
 
         blockMap.put("block_hash", block.getBlockHash());
         blockMap.put("previous_block_hash", block.getPreviousBlockHash());
-        blockMap.put("transactions", block.getTransactions()); // TODO this assumes Transaction class is serializable
+        blockMap.put("transactions", block.getTransactions());
 
         HashMap<String, Object> stateMap = new HashMap<>();
         for (Enumeration<String> keys = accounts.keys(); keys.hasMoreElements();) {
@@ -110,5 +115,87 @@ public class BlockchainState {
         } catch (IOException e) {
             System.out.println("Error writing block to file: " + e.getMessage());
         }
+    }
+
+    public static BlockchainState load(String dir) throws Exception {
+        File file = BlockchainState.getLatestBlockFile(dir);
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode root = mapper.readTree(file);
+
+        JsonNode stateNode = root.get("state");
+        if (stateNode == null || !stateNode.isObject()) {
+            throw new Exception("Invalid state file format");
+        }
+
+        Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
+        Iterator<Map.Entry<String, JsonNode>> fields = stateNode.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String address = entry.getKey();
+            JsonNode accountNode = entry.getValue();
+            long balance = accountNode.get("balance").asLong();
+
+            if (accountNode.has("code")) {
+                String code = accountNode.get("code").asText();
+                ContractAccount contractAccount = new ContractAccount(address, code);
+                contractAccount.setBalance(balance);
+
+                if (accountNode.has("storage")) {
+                    JsonNode storageNode = accountNode.get("storage");
+                    Dictionary<String, String> storage = new Hashtable<>();
+                    Iterator<Map.Entry<String, JsonNode>> storageFields = storageNode.fields();
+                    while (storageFields.hasNext()) {
+                        Map.Entry<String, JsonNode> storageEntry = storageFields.next();
+                        String key = storageEntry.getKey();
+                        String value = storageEntry.getValue().asText();
+                        storage.put(key, value);
+                    }
+                    contractAccount.setStorage(storage);
+                }
+
+                accounts.put(address, contractAccount);
+            } else {
+                EOAAccount eoaAccount = new EOAAccount(address);
+                eoaAccount.setBalance(balance);
+                accounts.put(address, eoaAccount);
+            }
+        }
+
+        BlockchainState state = new BlockchainState();
+        for (Enumeration<String> keys = accounts.keys(); keys.hasMoreElements();) {
+            String key = keys.nextElement();
+            BlockchainAccount account = accounts.get(key);
+            state.insertAccount(account);
+        }
+        return state;
+    }
+
+    private static File getLatestBlockFile(String dir) {
+        File statesDirectory = new File(dir);
+        if (!statesDirectory.exists() || !statesDirectory.isDirectory()) {
+            throw new IllegalArgumentException("Invalid directory: " + dir);
+        }
+
+        File[] files = statesDirectory.listFiles((d, name) -> name.startsWith("block") && name.endsWith(".json"));
+        if (files == null || files.length == 0) {
+            throw new IllegalStateException("No block files found in directory: " + dir);
+        }
+
+        Pattern pattern = Pattern.compile("^block(\\d+)\\.json$");
+        File latestFile = null;
+        long maxId = -1;
+
+        for (File file : files) {
+            Matcher m = pattern.matcher(file.getName());
+            if (m.matches()) {
+                long id = Long.parseLong(m.group(1));
+                if (id > maxId) {
+                    maxId = id;
+                    latestFile = file;
+                }
+            }
+        }
+        return latestFile;
     }
 }

@@ -34,6 +34,10 @@ public class ContractAccount extends BlockchainAccount {
         return storage;
     }
 
+    public void setStorage(Dictionary<String, String> storage) {
+        this.storage = storage;
+    }
+
     @Override
     public void executeTransaction(BlockchainState state, Transaction transaction) {
         if (transaction.isTransfer() && transaction.getTo().equals(this.address)) {
