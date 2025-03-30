@@ -9,6 +9,13 @@ public class EOAAccount extends BlockchainAccount {
     @Override
     public void executeTransaction(Transaction transaction) {
         assert (transaction.isTransfer());
-        // TODO
+
+        if (transaction.getFrom().equals(this.address)) {
+            withdraw(transaction.getAmount());
+        } else if (transaction.getTo().equals(this.address)) {
+            deposit(transaction.getAmount());
+        } else {
+            System.out.println("Transaction not related to this account: " + address);
+        }
     }
 }
