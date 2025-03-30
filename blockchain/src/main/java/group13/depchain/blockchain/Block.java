@@ -15,7 +15,6 @@ public class Block {
     private final boolean aborted;
     private final byte[] previous_block_hash;
     private final List<Transaction> transactions;
-    private static int id = 0;
 
     public Block() {
         this.block_hash = new byte[0];
@@ -39,7 +38,6 @@ public class Block {
         this.transactions = new ArrayList<>();
         this.isNullBlock = false;
         this.aborted = false;
-        id++;
     }
 
     public Block(BlockMessage message) {
@@ -54,10 +52,6 @@ public class Block {
 
         this.isNullBlock = message.getIsNullBlock();
         this.aborted = false;
-    }
-
-    public static int getId() {
-        return id;
     }
 
     public boolean aborted() {

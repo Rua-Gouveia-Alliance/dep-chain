@@ -5,9 +5,9 @@ import java.util.Hashtable;
 
 public class ContractAccount extends BlockchainAccount {
     private String contractCode;
-    private Dictionary<Byte, String> storage = new Hashtable<>();
+    private Dictionary<String, byte[]> storage = new Hashtable<>();
 
-    public ContractAccount(String address, int balance, String contractCode) {
+    public ContractAccount(String address, String contractCode) {
         super(address);
         // TODO contract constructor?
         this.contractCode = contractCode;

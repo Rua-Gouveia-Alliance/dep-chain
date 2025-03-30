@@ -2,7 +2,7 @@ package group13.depchain.blockchain;
 
 public class EOAAccount extends BlockchainAccount {
 
-    public EOAAccount(String address, int balance, String privateKey) {
+    public EOAAccount(String address) {
         super(address);
     }
 

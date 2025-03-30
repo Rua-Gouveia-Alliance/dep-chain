@@ -47,6 +47,12 @@ public class BlockchainClientManager extends Thread {
 
                     System.out.println("[ClientManager] Received request for transaction: " + tx.toString());
 
+                    // check trasaction validity
+                    if (!tx.validate(ku)) {
+                        System.out.println("[ClientManager] Invalid transaction.");
+                        continue;
+                    }
+
                     this.pending.push(tx);
                     synchronized (this.pending.cond) {
                         this.pending.notifyChange();

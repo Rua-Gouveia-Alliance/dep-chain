@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.crypto.SecretKey;
 
 import group13.depchain.blockchain.Block;
+import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.consensus.EpochState;
@@ -21,6 +22,7 @@ public class BlockchainMember extends Thread {
     private AtomicBoolean running = new AtomicBoolean(true);
     private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<Transaction> pending;
+    private final BlockchainState state = new BlockchainState();
 
     public BlockchainMember(int id, int N, ConcurrentQueue<Block> decided,
             ConcurrentQueue<Transaction> pending) {
@@ -88,6 +90,9 @@ public class BlockchainMember extends Thread {
                 synchronized (this.decided.cond) {
                     this.decided.notifyChange();
                 }
+
+                // Execute decided block
+                state.executeBlock(decided);
 
                 System.out.println("[BlockchainMember] Decided: " + decided);
                 proposed = null;

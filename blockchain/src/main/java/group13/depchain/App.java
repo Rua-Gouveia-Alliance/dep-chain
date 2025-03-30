@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Scanner;
 
 import group13.depchain.blockchain.Block;
+import group13.depchain.blockchain.Transaction;
 import group13.depchain.producerconsumer.BlockchainClientManager;
 import group13.depchain.producerconsumer.ConcurrentQueue;
 
