@@ -3,6 +3,7 @@ package group13.depchain.blockchain;
 import java.security.PublicKey;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 
 import group13.depchain.Client.Request;
