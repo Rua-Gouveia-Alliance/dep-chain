@@ -71,6 +71,10 @@ public class BlockchainState {
         blockId++;
     }
 
+    public void setBlockId(long blockId) {
+        this.blockId = blockId;
+    }
+
     public void insertAccount(BlockchainAccount account) {
         accounts.put(account.getAddress(), account);
     }
@@ -122,7 +126,11 @@ public class BlockchainState {
     }
 
     public static BlockchainState load(String dir) throws Exception {
-        File file = BlockchainState.getLatestBlockFile(dir);
+        long id = getLatestBlockNum(dir);
+        if (id == -1) {
+            throw new Exception("No block files found in directory: " + dir);
+        }
+        File file = BlockchainState.getBlockFile(dir, id);
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(file);
@@ -172,10 +180,11 @@ public class BlockchainState {
             BlockchainAccount account = accounts.get(key);
             state.insertAccount(account);
         }
+        state.setBlockId(id);
         return state;
     }
 
-    private static File getLatestBlockFile(String dir) {
+    public static long getLatestBlockNum(String dir) {
         File statesDirectory = new File(dir);
         if (!statesDirectory.exists() || !statesDirectory.isDirectory()) {
             throw new IllegalArgumentException("Invalid directory: " + dir);
@@ -187,7 +196,6 @@ public class BlockchainState {
         }
 
         Pattern pattern = Pattern.compile("^block(\\d+)\\.json$");
-        File latestFile = null;
         long maxId = -1;
 
         for (File file : files) {
@@ -196,11 +204,14 @@ public class BlockchainState {
                 long id = Long.parseLong(m.group(1));
                 if (id > maxId) {
                     maxId = id;
-                    latestFile = file;
                 }
             }
         }
-        return latestFile;
+        return maxId;
+    }
+
+    private static File getBlockFile(String dir, long id) {
+        return new File(dir, "block" + Long.toString(id) + ".json");
     }
 
     public static void createGenesisBlock() {
