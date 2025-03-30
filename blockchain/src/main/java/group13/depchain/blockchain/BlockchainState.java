@@ -202,4 +202,57 @@ public class BlockchainState {
         }
         return latestFile;
     }
+
+    public static void createGenesisBlock() {
+        // TODO AI generated, need to change this
+
+        BlockchainState genesisState = new BlockchainState();
+
+        String deployerAddress = "0x000000000000000000000000000000000000dEAD";
+        String blacklistAddress = "0x000000000000000000000000000000000000BEEF";
+        String istCoinAddress = "0x0000000000000000000000000000000000001CED";
+
+        long totalSupply = 100_000_000L;
+        String totalSupplyHex = "0x" + String.format("%064x", totalSupply * (long) Math.pow(10, 18));
+
+        // --- Deployer EOA ---
+        EOAAccount deployer = new EOAAccount(deployerAddress);
+        deployer.setBalance(0);
+        genesisState.insertAccount(deployer);
+
+        // --- Blacklist Contract ---
+        String blacklistBytecode = "0x..."; // TODO: actual compiled bytecode (runtime)
+        ContractAccount blacklist = new ContractAccount(blacklistAddress, blacklistBytecode);
+        blacklist.setBalance(0);
+
+        Dictionary<String, String> blacklistStorage = new Hashtable<>();
+        // Simulate constructor: owner = deployer, admins[deployer] = true
+        String ownerSlot = "0x0"; // assuming slot 0 for `owner`
+        String adminsSlot = "0x" + hashAddressSlot(deployerAddress, 1); // slot 1 for `admins`, packed
+        blacklistStorage.put(ownerSlot, deployerAddress);
+        blacklistStorage.put(adminsSlot, "0x1"); // true
+        blacklist.setStorage(blacklistStorage);
+        genesisState.insertAccount(blacklist);
+
+        // --- ISTCoin Contract ---
+        String istBytecode = "0x..."; // TODO: actual compiled bytecode (runtime)
+        ContractAccount ist = new ContractAccount(istCoinAddress, istBytecode);
+        ist.setBalance(0);
+
+        Dictionary<String, String> istStorage = new Hashtable<>();
+        // Simulate constructor:
+        // balanceOf[deployer] = totalSupply
+        String balancesSlot = "0x" + hashAddressSlot(deployerAddress, 0); // slot 0 for balances
+        String totalSupplySlot = "0x2"; // assuming OpenZeppelin stores it here
+        String blacklistRefSlot = "0x3"; // slot for `blacklist` contract reference
+        istStorage.put(balancesSlot, totalSupplyHex);
+        istStorage.put(totalSupplySlot, totalSupplyHex);
+        istStorage.put(blacklistRefSlot, blacklistAddress); // encoded address
+        ist.setStorage(istStorage);
+        genesisState.insertAccount(ist);
+
+        // --- Create Genesis Block ---
+        Block genesisBlock = new Block(null, new ArrayList<>());
+        genesisState.save(genesisBlock);
+    }
 }

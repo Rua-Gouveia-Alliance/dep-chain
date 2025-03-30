@@ -23,10 +23,11 @@ public class ContractAccount extends BlockchainAccount {
     private final String contractCode;
     private Dictionary<String, String> storage = new Hashtable<>();
 
-    public ContractAccount(String address, String contractCode) {
+    public ContractAccount(/* String deployer, */ String address, String contractCode) {
         super(address);
-        // TODO contract constructor?
         this.contractCode = contractCode;
+        // this.deployContract(deployer); TODO if we want to allow contract deployment
+        // we have to execute constructor and get runtime bytecode automatically
     }
 
     public String getContractCode() {
@@ -47,7 +48,7 @@ public class ContractAccount extends BlockchainAccount {
             deposit(transaction.getAmount());
             return;
         } else if (transaction.isTransfer() && transaction.getFrom().equals(this.address)) {
-            // TODO propagate error
+            // TODO propagate errors
             return;
         }
 
@@ -106,4 +107,5 @@ public class ContractAccount extends BlockchainAccount {
         this.balance = contractAccount.getBalance().toLong();
         state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
     }
+
 }

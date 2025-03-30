@@ -24,7 +24,7 @@ contract ISTCoin is ERC20 {
     ) public override returns (bool) {
         require(!blacklist.isBlacklisted(msg.sender), "Sender is blacklisted");
         require(!blacklist.isBlacklisted(to), "Receiver is blacklisted");
-        return super.transferFrom(from, to, amount);
+        return super.transferFrom(msg.sender, to, amount);
     }
 
     function transferFrom(
