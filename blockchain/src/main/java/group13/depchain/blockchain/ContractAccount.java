@@ -45,6 +45,7 @@ public class ContractAccount extends BlockchainAccount {
         }
 
         // contract execution
+        // we use the Besu EVM as a sandbox to execute the contract code
         SimpleWorld world = new SimpleWorld();
         Bytes code = Bytes.fromHexString(contractCode);
         Bytes callData = Bytes.fromHexString(transaction.getPayload());
