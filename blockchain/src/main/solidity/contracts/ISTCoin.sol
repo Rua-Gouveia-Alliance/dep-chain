@@ -13,7 +13,7 @@ contract ISTCoin is ERC20 {
     constructor(
         uint256 totalSupply,
         address blacklistAddress
-    ) ERC20("ISTCoint", "IST") {
+    ) ERC20("ISTCoin", "IST") {
         blacklist = IBlacklist(blacklistAddress);
         _mint(msg.sender, totalSupply * 10 ** decimals());
     }

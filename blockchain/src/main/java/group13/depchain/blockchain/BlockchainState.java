@@ -1,5 +1,6 @@
 package group13.depchain.blockchain;
 
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -9,6 +10,8 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.tuweni.bytes.Bytes;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -17,6 +20,7 @@ import group13.depchain.blockchain.account.ContractAccount;
 import group13.depchain.blockchain.account.EOAAccount;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 
 public class BlockchainState {
@@ -218,52 +222,64 @@ public class BlockchainState {
         // TODO AI generated, need to change this
 
         BlockchainState genesisState = new BlockchainState();
-
-        String deployerAddress = "0x000000000000000000000000000000000000dEAD";
-        String blacklistAddress = "0x000000000000000000000000000000000000BEEF";
-        String istCoinAddress = "0x0000000000000000000000000000000000001CED";
-
-        long totalSupply = 100_000_000L;
-        String totalSupplyHex = "0x" + String.format("%064x", totalSupply * (long) Math.pow(10, 18));
+        
+        String deployerAddress = "0x0000000000000000000000000000000000000000";
+        // deployerAddress should be no 
+        String blacklistAddress = "0x1234ABCD1234DEAD4321ABCD4321000000000000";
+        // blacklistAddress
+        String istCoinAddress = "0x4321DCBA4321DAED1234DCBA1234000000001CED";
 
         // --- Deployer EOA ---
         EOAAccount deployer = new EOAAccount(deployerAddress);
         deployer.setBalance(0);
         genesisState.insertAccount(deployer);
 
+        String genSourcesPath = "../../../../../../target/generated-sources/solidity/bin/org/web3j/model/";
         // --- Blacklist Contract ---
-        String blacklistBytecode = "0x..."; // TODO: actual compiled bytecode (runtime)
-        ContractAccount blacklist = new ContractAccount(blacklistAddress, blacklistBytecode);
-        blacklist.setBalance(0);
+        
+        File blacklistBin = new File(genSourcesPath + "Blacklist.bin");
 
-        Dictionary<String, String> blacklistStorage = new Hashtable<>();
-        // Simulate constructor: owner = deployer, admins[deployer] = true
-        String ownerSlot = "0x0"; // assuming slot 0 for `owner`
-        String adminsSlot = "0x" + hashAddressSlot(deployerAddress, 1); // slot 1 for `admins`, packed
-        blacklistStorage.put(ownerSlot, deployerAddress);
-        blacklistStorage.put(adminsSlot, "0x1"); // true
-        blacklist.setStorage(blacklistStorage);
-        genesisState.insertAccount(blacklist);
+        try (FileInputStream fis = new FileInputStream(blacklistBin)) {
+            // Read binary file as byte array
+            byte[] fileBytes = new byte[(int) blacklistBin.length()];
+            fis.read(fileBytes);
+            Bytes tuweniBytes = Bytes.wrap(fileBytes);
+            // Convert bytes to hex string
+            String blacklistBytecode = tuweniBytes.toHexString();
+
+            ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode, deployerAddress);
+            blacklistAccount.setBalance(0);
+
+            genesisState.insertAccount(blacklistAccount);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // --- ISTCoin Contract ---
-        String istBytecode = "0x..."; // TODO: actual compiled bytecode (runtime)
-        ContractAccount ist = new ContractAccount(istCoinAddress, istBytecode);
-        ist.setBalance(0);
 
-        Dictionary<String, String> istStorage = new Hashtable<>();
-        // Simulate constructor:
-        // balanceOf[deployer] = totalSupply
-        String balancesSlot = "0x" + hashAddressSlot(deployerAddress, 0); // slot 0 for balances
-        String totalSupplySlot = "0x2"; // assuming OpenZeppelin stores it here
-        String blacklistRefSlot = "0x3"; // slot for `blacklist` contract reference
-        istStorage.put(balancesSlot, totalSupplyHex);
-        istStorage.put(totalSupplySlot, totalSupplyHex);
-        istStorage.put(blacklistRefSlot, blacklistAddress); // encoded address
-        ist.setStorage(istStorage);
-        genesisState.insertAccount(ist);
+        File istCoinBin = new File(genSourcesPath + "ISTCoin.bin");
+
+        try (FileInputStream fis = new FileInputStream(istCoinBin)) {
+            // Read binary file as byte array
+            byte[] fileBytes = new byte[(int) istCoinBin.length()];
+            fis.read(fileBytes);
+            Bytes tuweniBytes = Bytes.wrap(fileBytes);
+            // Convert bytes to hex string
+            String istCoinBytecode = tuweniBytes.toHexString();
+
+            ContractAccount istAccount = new ContractAccount(istCoinAddress, istCoinBytecode, deployerAddress);
+            istAccount.setBalance(0);
+
+            genesisState.insertAccount(istAccount);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
 
         // --- Create Genesis Block ---
-        Block genesisBlock = new Block(null, new ArrayList<>());
+
+        Block genesisBlock = new Block();
         genesisState.save(genesisBlock);
     }
 }
