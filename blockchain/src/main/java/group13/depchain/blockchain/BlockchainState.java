@@ -1,8 +1,9 @@
 package group13.depchain.blockchain;
 
 import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Hashtable;
-import java.util.List;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -56,6 +57,8 @@ public class BlockchainState {
                 contract.executeTransaction(tx);
             }
         }
+
+        save(block);
         blockId++;
     }
 
@@ -71,11 +74,41 @@ public class BlockchainState {
         return accounts.get(address);
     }
 
-    public void save(List<Transaction> transactions) throws IOException {
-        ObjectMapper mapper = new ObjectMapper();
+    public void save(Block block) {
+        ObjectMapper objectMapper = new ObjectMapper();
         File statesDirectory = new File("./states/");
-        File blockJSON = new File(statesDirectory, "block" + Long.toString(blockId) + ".json");
+        if (!statesDirectory.exists()) {
+            statesDirectory.mkdir();
+        }
 
-        // TODO
+        File blockJSON = new File(statesDirectory, "block" + Long.toString(blockId) + ".json");
+        HashMap<String, Object> blockMap = new HashMap<>();
+
+        blockMap.put("block_hash", block.getBlockHash());
+        blockMap.put("previous_block_hash", block.getPreviousBlockHash());
+        blockMap.put("transactions", block.getTransactions()); // TODO this assumes Transaction class is serializable
+
+        HashMap<String, Object> stateMap = new HashMap<>();
+        for (Enumeration<String> keys = accounts.keys(); keys.hasMoreElements();) {
+            String key = keys.nextElement();
+            BlockchainAccount account = accounts.get(key);
+            HashMap<String, Object> accountMap = new HashMap<>();
+
+            accountMap.put("balance", account.getBalance());
+            if (account instanceof ContractAccount) {
+                accountMap.put("code", ((ContractAccount) account).getContractCode());
+                accountMap.put("storage", ((ContractAccount) account).getStorage());
+            }
+
+            stateMap.put(key, accountMap);
+        }
+
+        blockMap.put("state", stateMap);
+
+        try {
+            objectMapper.writerWithDefaultPrettyPrinter().writeValue(blockJSON, blockMap);
+        } catch (IOException e) {
+            System.out.println("Error writing block to file: " + e.getMessage());
+        }
     }
 }

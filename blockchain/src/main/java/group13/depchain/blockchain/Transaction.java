@@ -2,6 +2,7 @@ package group13.depchain.blockchain;
 
 import java.security.PublicKey;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.protobuf.ByteString;
 
 import group13.depchain.Client.Request;
@@ -69,8 +70,18 @@ public class Transaction {
         return payload;
     }
 
+    @JsonIgnore
     public byte[] getSignature() {
         return signature;
+    }
+
+    @JsonProperty("signature")
+    public String getSignatureHex() {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : signature) {
+            sb.append(String.format("%02x", b));
+        }
+        return "0x" + sb.toString();
     }
 
     @Override

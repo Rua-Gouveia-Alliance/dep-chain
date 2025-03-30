@@ -4,13 +4,21 @@ import java.util.Dictionary;
 import java.util.Hashtable;
 
 public class ContractAccount extends BlockchainAccount {
-    private String contractCode;
-    private Dictionary<String, byte[]> storage = new Hashtable<>();
+    private final String contractCode;
+    private Dictionary<String, String> storage = new Hashtable<>();
 
     public ContractAccount(String address, String contractCode) {
         super(address);
         // TODO contract constructor?
         this.contractCode = contractCode;
+    }
+
+    public String getContractCode() {
+        return contractCode;
+    }
+
+    public Dictionary<String, String> getStorage() {
+        return storage;
     }
 
     @Override
