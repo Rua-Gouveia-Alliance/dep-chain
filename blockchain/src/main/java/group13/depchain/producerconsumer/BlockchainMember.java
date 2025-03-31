@@ -46,12 +46,6 @@ public class BlockchainMember extends Thread {
     @Override
     public void run() {
         try {
-            if (!Files.exists(Paths.get("./keys"))) {
-                Files.createDirectories(Paths.get("./keys"));
-                KeyManager.generateMemberKeys(this.N, "./keys");
-                KeyManager.generateClientKeys(this.N, "./keys/clients");
-            }
-
             System.out.println("[BlockchainMember] Starting blockchain member.");
             PrivateKey KP = KeyManager.getMemberPrivateKey(this.id, "./keys");
             PublicKey[] KUs = KeyManager.getMemberPublicKeys(this.N, "./keys");

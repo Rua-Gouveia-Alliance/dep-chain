@@ -67,7 +67,7 @@ public class Util {
         return ecdsaVerify.verify(signature);
     }
 
-    public static boolean verifyTransactionAddress(String from, PublicKey publicKey) {
+    public static String getClientAddress(PublicKey publicKey) {
         ECPublicKey ecPub = (ECPublicKey) publicKey;
         BigInteger x = ecPub.getW().getAffineX();
         BigInteger y = ecPub.getW().getAffineY();
@@ -88,8 +88,11 @@ public class Util {
             sb.append(String.format("%02x", b));
         }
         String expected_address = "0x" + sb.toString();
+        return expected_address;
+    }
 
-        return from.equals(expected_address);
+    public static boolean verifyTransactionAddress(String from, PublicKey publicKey) {
+        return from.equals(getClientAddress(publicKey));
     }
 
     private static byte[] bigIntTo32Bytes(BigInteger value) {
