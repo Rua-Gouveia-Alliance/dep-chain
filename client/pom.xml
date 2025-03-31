@@ -47,7 +47,7 @@
             </execution>
           </executions>
           <configuration>
-            <mainClass>group13.depchain.BlockchainClient</mainClass>
+            <mainClass>group13.depchain.App</mainClass>
           </configuration>
       </plugin>
     </plugins>
