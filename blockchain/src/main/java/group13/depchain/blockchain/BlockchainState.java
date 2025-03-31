@@ -46,12 +46,12 @@ public class BlockchainState {
                 BlockchainAccount to = getAccount(tx.getTo());
 
                 if (from == null) {
-                    from = new EOAAccount(tx.getFrom());
+                    from = new EOAAccount(tx.getFrom(), 0);
                     insertAccount(from);
                 }
 
                 if (to == null) {
-                    to = new EOAAccount(tx.getTo());
+                    to = new EOAAccount(tx.getTo(), 0);
                     insertAccount(to);
                 }
 
@@ -114,6 +114,8 @@ public class BlockchainState {
             if (account instanceof ContractAccount) {
                 accountMap.put("code", ((ContractAccount) account).getContractCode());
                 accountMap.put("storage", ((ContractAccount) account).getStorage());
+            } else if (account instanceof EOAAccount) {
+                accountMap.put("nonce", ((EOAAccount) account).getNonce());
             }
 
             stateMap.put(key, accountMap);
@@ -171,7 +173,7 @@ public class BlockchainState {
 
                 accounts.put(address, contractAccount);
             } else {
-                EOAAccount eoaAccount = new EOAAccount(address);
+                EOAAccount eoaAccount = new EOAAccount(address, accountNode.get("nonce").asLong());
                 eoaAccount.setBalance(balance);
                 accounts.put(address, eoaAccount);
             }
