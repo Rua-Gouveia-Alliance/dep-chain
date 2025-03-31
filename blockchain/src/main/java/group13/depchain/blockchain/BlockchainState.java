@@ -183,7 +183,7 @@ public class BlockchainState {
             BlockchainAccount account = accounts.get(key);
             state.insertAccount(account);
         }
-        state.setBlockId(id);
+        state.setBlockId(id + 1);
         return state;
     }
 
@@ -221,9 +221,9 @@ public class BlockchainState {
         // TODO AI generated, need to change this
 
         BlockchainState genesisState = new BlockchainState();
-        
+
         String deployerAddress = "0x0000000000000000000000000000000000000000";
-        // deployerAddress should be no 
+        // deployerAddress should be no
         String blacklistAddress = "0x1234ABCD1234DEAD4321ABCD4321000000000000";
         // blacklistAddress
         String istCoinAddress = "0x4321DCBA4321DAED1234DCBA1234000000001CED";
@@ -235,7 +235,7 @@ public class BlockchainState {
 
         String genSourcesPath = "../../../../../../target/generated-sources/solidity/bin/org/web3j/model/";
         // --- Blacklist Contract ---
-        
+
         File blacklistBin = new File(genSourcesPath + "Blacklist.bin");
 
         try (FileInputStream fis = new FileInputStream(blacklistBin)) {
@@ -246,7 +246,8 @@ public class BlockchainState {
             // Convert bytes to hex string
             String blacklistBytecode = tuweniBytes.toHexString();
 
-            ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode, deployerAddress);
+            ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode,
+                    deployerAddress);
             blacklistAccount.setBalance(0);
 
             genesisState.insertAccount(blacklistAccount);
