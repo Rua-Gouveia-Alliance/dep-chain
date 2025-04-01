@@ -56,7 +56,9 @@ public class BlockchainClient {
         }
     }
 
-    public Request createRequest(boolean isTransfer, String to, long amount, long nonce, String payload) {
+    public Request createRequest(boolean isTransfer, String to, long amount, String payload) {
+        long nonce = System.currentTimeMillis();
+
         Request.Builder requestBuilder = Request.newBuilder();
         requestBuilder.setFrom(address);
         requestBuilder.setTo(to);

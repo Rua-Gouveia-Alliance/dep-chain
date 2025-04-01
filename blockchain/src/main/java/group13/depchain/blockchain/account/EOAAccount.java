@@ -13,8 +13,8 @@ public class EOAAccount extends BlockchainAccount {
     }
 
     private boolean validateNonce(long n) {
-        if (this.nonce == n) {
-            this.nonce++;
+        if (this.nonce < n) {
+            this.nonce = n;
             return true;
         }
         return false;

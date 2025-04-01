@@ -66,10 +66,8 @@ public class App {
         String to = scanner.next();
         System.out.print("Enter amount to transfer: ");
         long amount = scanner.nextLong();
-        System.out.print("Enter nonce: ");
-        long nonce = scanner.nextLong();
 
-        Request request = client.createRequest(true, to, amount, nonce, "");
+        Request request = client.createRequest(true, to, amount, "");
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
@@ -83,10 +81,8 @@ public class App {
         String to = scanner.next();
         System.out.print("Enter payload: ");
         String payload = scanner.next();
-        System.out.print("Enter nonce: ");
-        long nonce = scanner.nextLong();
 
-        Request request = client.createRequest(false, to, 0, nonce, payload);
+        Request request = client.createRequest(false, to, 0, payload);
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
