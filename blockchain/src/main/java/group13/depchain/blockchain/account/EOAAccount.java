@@ -28,11 +28,16 @@ public class EOAAccount extends BlockchainAccount {
     public void executeTransaction(BlockchainState state, Transaction transaction) {
         // assert (transaction.isTransfer()); TODO
 
-        if (validateNonce(transaction.getNonce())) {
-            // TODO
-            return;
+        if (transaction.getFrom().equals(this.address)) {
+            if (!validateNonce(transaction.getNonce())) {
+                // TODO invalid nonce error handling
+                return;
+            }
         }
 
+        System.out.println(transaction.getFrom());
+        System.out.println(this.address);
+        System.out.println((transaction.getFrom().equals(this.address)));
         if (transaction.getFrom().equals(this.address)) {
             withdraw(transaction.getAmount());
         } else if (transaction.getTo().equals(this.address)) {
@@ -40,5 +45,14 @@ public class EOAAccount extends BlockchainAccount {
         } else {
             System.out.println("Transaction not related to this account: " + address);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "EOAAccount{" +
+                "address='" + address + '\'' +
+                ", balance=" + balance +
+                ", nonce=" + nonce +
+                '}';
     }
 }

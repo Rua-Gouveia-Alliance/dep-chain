@@ -26,11 +26,11 @@ public abstract class BlockchainAccount {
 
     public boolean deposit(long amount) {
         // TODO propagte error to the caller
-        if (amount >= 0) {
+        if (amount < 0) {
             System.out.println("Cannot deposit negative amount!");
             return false;
         }
-        if (amount + this.balance >= 0) {
+        if (amount + this.balance < 0) {
             System.out.println("Balance cannot be negative!");
             return false;
         }
@@ -40,11 +40,11 @@ public abstract class BlockchainAccount {
 
     public boolean withdraw(long amount) {
         // TODO propagte error to the caller
-        if (amount >= 0) {
+        if (amount < 0) {
             System.out.println("Cannot withdraw negative amount!");
             return false;
         }
-        if (amount + this.balance >= 0) {
+        if (amount + this.balance < 0) {
             System.out.println("Balance cannot be negative!");
             return false;
         }

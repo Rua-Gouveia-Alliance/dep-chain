@@ -16,6 +16,10 @@ import org.hyperledger.besu.evm.fluent.EVMExecutor;
 import org.hyperledger.besu.evm.fluent.SimpleWorld;
 import org.hyperledger.besu.evm.tracing.StandardJsonTracer;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 
@@ -118,7 +122,7 @@ public class ContractAccount extends BlockchainAccount {
         Address from = Address.fromHexString(deployer);
         Address to = Address.fromHexString(this.address);
 
-        world.createAccount(from, 0, Wei.of(0));
+        world.createAccount(from, 0, Wei.of(1_000_000_000L));
         world.createAccount(to, 0, Wei.of(0));
 
         ByteArrayOutputStream output = new ByteArrayOutputStream();
@@ -134,8 +138,8 @@ public class ContractAccount extends BlockchainAccount {
         executor.commitWorldState();
 
         // get return data (which is the runtime code)
-        Bytes runtimeCode = executor.execute();
-        this.contractCode = runtimeCode.toHexString();
+        executor.execute();
+        this.contractCode = extractReturnData(output);
 
         MutableAccount contractAccount = (MutableAccount) world.get(to);
         for (int i = 0; i < 64; i++) {
@@ -146,6 +150,32 @@ public class ContractAccount extends BlockchainAccount {
                 this.storage.put(key.toHexString(), value.toHexString());
             }
         }
+    }
+
+    public static String extractReturnData(ByteArrayOutputStream byteArrayOutputStream) {
+        String[] lines = byteArrayOutputStream.toString().split("\\r?\\n");
+        JsonObject jsonObject = JsonParser.parseString(lines[lines.length - 1]).getAsJsonObject();
+
+        String memory = jsonObject.get("memory").getAsString();
+
+        JsonArray stack = jsonObject.get("stack").getAsJsonArray();
+        int offset = Integer.decode(stack.get(stack.size() - 1).getAsString());
+        int size = Integer.decode(stack.get(stack.size() - 2).getAsString());
+
+        String returnData = memory.substring(2 + offset * 2, 2 + offset * 2 + size * 2);
+        return "0x" + returnData;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ContractAccount{");
+        sb.append("address='").append(address).append('\'');
+        sb.append(", balance=").append(balance);
+        sb.append(", contractCode='").append(contractCode).append('\'');
+        sb.append(", storage=").append(storage);
+        sb.append('}');
+        return sb.toString();
     }
 
 }

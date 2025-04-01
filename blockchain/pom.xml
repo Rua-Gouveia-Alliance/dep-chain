@@ -31,6 +31,12 @@
         </dependency>
 
         <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.12.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.apache.tuweni</groupId>
             <artifactId>tuweni-crypto</artifactId>
             <version>${tuweni.version}</version>

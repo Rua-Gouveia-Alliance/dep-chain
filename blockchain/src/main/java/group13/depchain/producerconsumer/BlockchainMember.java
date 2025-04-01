@@ -32,7 +32,7 @@ public class BlockchainMember extends Thread {
         this.pending = pending;
 
         try {
-            this.state = BlockchainState.load("./blockchainStates/");
+            this.state = BlockchainState.load("./blockchain/states/");
         } catch (Exception e) {
             System.out.println("[BlockchainMember] Error loading state: " + e.getMessage());
             this.state = new BlockchainState();

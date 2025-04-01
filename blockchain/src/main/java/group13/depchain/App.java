@@ -27,7 +27,7 @@ public class App {
             KeyManager.generateClientKeys(clientN, "./keys/clients");
         }
 
-        if (!Files.exists(Paths.get("./blockhain/states"))) {
+        if (!Files.exists(Paths.get("./blockchain/states"))) {
             Files.createDirectories(Paths.get("./blockchain/states"));
             BlockchainState.createGenesisBlock();
         }

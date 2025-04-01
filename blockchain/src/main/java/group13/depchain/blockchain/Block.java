@@ -14,7 +14,7 @@ import com.google.protobuf.ByteString;
 public class Block {
     private byte[] blockHash;
     private final byte[] previousBlockHash;
-    private final int capacity = 2;
+    private final int capacity = 1;
     private final boolean isNullBlock;
     private final boolean aborted;
     private final List<Transaction> transactions;
