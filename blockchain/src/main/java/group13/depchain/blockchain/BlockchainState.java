@@ -92,7 +92,7 @@ public class BlockchainState {
 
     public void save(Block block) {
         ObjectMapper objectMapper = new ObjectMapper();
-        File statesDirectory = new File("./blockchain/states/");
+        File statesDirectory = new File("./blockhain/states");
         if (!statesDirectory.exists()) {
             statesDirectory.mkdir();
         }
@@ -261,7 +261,7 @@ public class BlockchainState {
         fis.read(fileBytes);
         Bytes bytes = Bytes.wrap(fileBytes);
         fis.close();
-        
+
         return bytes.toHexString();
     }
 }

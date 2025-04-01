@@ -1,11 +1,18 @@
 package group13.depchain;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.util.Base64;
+import java.util.List;
 
 import com.google.protobuf.ByteString;
 
@@ -13,12 +20,21 @@ import group13.depchain.Client.*;
 
 public class BlockchainClient {
 
+    private final int id;
+    private final Socket socket;
+    private final PrintWriter out;
+    private final BufferedReader in;
     private final PrivateKey privateKey;
     private final String address;
 
-    public BlockchainClient(PrivateKey privateKey, String address) {
+    public BlockchainClient(int id, PrivateKey privateKey, String address) throws Exception {
+        this.id = id;
         this.privateKey = privateKey;
         this.address = address;
+
+        this.socket = new Socket("localhost", 6000 + id);
+        this.out = new PrintWriter(socket.getOutputStream(), true);
+        this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
     public byte[] genSignature(boolean isTransfer, String to, long amount, long nonce, String payload) {
@@ -53,8 +69,28 @@ public class BlockchainClient {
         return requestBuilder.build();
     }
 
+    public void sendTransaction(Request req) {
+        out.println(Base64.getEncoder().encodeToString(req.toByteArray()));
+    }
+
+    public List<String> receiveStatus() throws IOException {
+        String response = in.readLine();
+        if (response == null) {
+            return null;
+        }
+
+        Response state = Response.parseFrom(Base64.getDecoder().decode(response));
+        return state.getEntriesList();
+    }
+
     public String getAddress() {
         return address;
     }
-        
+
+    public void close() throws IOException {
+        in.close();
+        out.close();
+        socket.close();
+    }
+
 }
