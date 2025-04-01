@@ -219,69 +219,51 @@ public class BlockchainState {
         return new File(dir, "block" + Long.toString(id) + ".json");
     }
 
-    public static void createGenesisBlock() {
-        // TODO AI generated, need to change this
+    public static void createGenesisBlock() throws IOException {
+        // TODO?
 
         BlockchainState genesisState = new BlockchainState();
 
-        String deployerAddress = "0x0000000000000000000000000000000000000000";
-        // deployerAddress should be no
+        String filePath = "./keys/clients/addr0";
+        String deployerAddress = readBinFile(filePath);
+
         String blacklistAddress = "0x1234ABCD1234DEAD4321ABCD4321000000000000";
-        // blacklistAddress
         String istCoinAddress = "0x4321DCBA4321DAED1234DCBA1234000000001CED";
 
         // --- Deployer EOA ---
-        EOAAccount deployer = new EOAAccount(deployerAddress);
+        EOAAccount deployer = new EOAAccount(deployerAddress, 0);
         deployer.setBalance(0);
         genesisState.insertAccount(deployer);
 
-        String genSourcesPath = "../../../../../../target/generated-sources/solidity/bin/org/web3j/model/";
+        String genSourcesPath = "./bytecodes/";
+
         // --- Blacklist Contract ---
-
-        File blacklistBin = new File(genSourcesPath + "Blacklist.bin");
-
-        try (FileInputStream fis = new FileInputStream(blacklistBin)) {
-            // Read binary file as byte array
-            byte[] fileBytes = new byte[(int) blacklistBin.length()];
-            fis.read(fileBytes);
-            Bytes tuweniBytes = Bytes.wrap(fileBytes);
-            // Convert bytes to hex string
-            String blacklistBytecode = tuweniBytes.toHexString();
-
-            ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode,
-                    deployerAddress);
-            blacklistAccount.setBalance(0);
-
-            genesisState.insertAccount(blacklistAccount);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String blacklistBytecode = "0x" + readBinFile(genSourcesPath + "Blacklist.bin");
+        ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode,
+            deployerAddress);
+        blacklistAccount.setBalance(0);
+        genesisState.insertAccount(blacklistAccount);
 
         // --- ISTCoin Contract ---
-
-        File istCoinBin = new File(genSourcesPath + "ISTCoin.bin");
-
-        try (FileInputStream fis = new FileInputStream(istCoinBin)) {
-            // Read binary file as byte array
-            byte[] fileBytes = new byte[(int) istCoinBin.length()];
-            fis.read(fileBytes);
-            Bytes tuweniBytes = Bytes.wrap(fileBytes);
-            // Convert bytes to hex string
-            String istCoinBytecode = tuweniBytes.toHexString();
-
-            ContractAccount istAccount = new ContractAccount(istCoinAddress, istCoinBytecode, deployerAddress);
-            istAccount.setBalance(0);
-
-            genesisState.insertAccount(istAccount);
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        String istCoinBytecode = readBinFile(genSourcesPath + "ISTCoin.bin");
+        ContractAccount istAccount = new ContractAccount(istCoinAddress, istCoinBytecode, deployerAddress);
+        istAccount.setBalance(0);
+        genesisState.insertAccount(istAccount);
 
         // --- Create Genesis Block ---
-
         Block genesisBlock = new Block();
         genesisState.save(genesisBlock);
+    }
+
+    public static String readBinFile(String filepath) throws IOException {
+        File binFile = new File(filepath);
+
+        FileInputStream fis = new FileInputStream(binFile);
+        byte[] fileBytes = new byte[(int) binFile.length()];
+        fis.read(fileBytes);
+        Bytes bytes = Bytes.wrap(fileBytes);
+        fis.close();
+        
+        return bytes.toHexString();
     }
 }
