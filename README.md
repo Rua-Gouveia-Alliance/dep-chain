@@ -16,7 +16,7 @@ We have prepared a demo on the Blockchain Members deciding on a value with Byzan
 For executing this you just need to run 6 different instances of the members with argument from 0 to 5, for example for the leader (0):
 
 ```
-$ mvn -pl blockchain exec:java -Dexec.mainClass="group13.depchain.BlockchainMember" -Dexec.args="0"
+$ mvn -pl blockchain exec:java -Dexec.mainClass="group13.depchain.BlockchainMember" -Dexec.args="0 <nClients>"
 ```
 
 The processes will successfully decide on the string "ABAB". This will be printed in the terminal.

@@ -230,6 +230,8 @@ public class BlockchainState {
         String blacklistAddress = "0x1234abcd1234dead4321abcd4321000000000000";
         String istCoinAddress = "0x4321dcbA4321daed1234dcba1234000000001ced";
 
+        String counterAddress = "0x4321dcbA4321daed1234dcba123400000000abcd";
+
         // Deployer EOA
         EOAAccount deployer = new EOAAccount(deployerAddress, 0);
         deployer.setBalance(1000_000_000_000L);
@@ -252,6 +254,13 @@ public class BlockchainState {
         ContractAccount istAccount = new ContractAccount(istCoinAddress, istCoinBytecode, deployerAddress);
         istAccount.setBalance(0);
         genesisState.insertAccount(istAccount);
+
+        // Counter Contract
+        String counterBytecode = "0x"
+                + "6080604052348015600e575f80fd5b5060025f5561011d806100205f395ff3fe6080604052348015600e575f80fd5b5060043610603a575f3560e01c80637527836214603e57806387fa4bc214604f578063d09de08a146063575b5f80fd5b604d60493660046092565b6069565b005b5f5460405190815260200160405180910390f35b604d607f565b805f808282546077919060bc565b909155505050565b5f80549080608b8360d2565b9190505550565b5f6020828403121560a1575f80fd5b5035919050565b634e487b7160e01b5f52601160045260245ffd5b8082018082111560cc5760cc60a8565b92915050565b5f6001820160e05760e060a8565b506001019056fea26469706673582212207a1750d0e49faa8c77f2408bc19a0ab52b848f5dd0dbe759bb55304204abfa2664736f6c634300081a0033";
+        ContractAccount counterAccount = new ContractAccount(counterAddress, counterBytecode, deployerAddress);
+        counterAccount.setBalance(0);
+        genesisState.insertAccount(counterAccount);
 
         // Create and Save Genesis Block
         Block genesisBlock = new Block();

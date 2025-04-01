@@ -178,13 +178,17 @@ public class ByzantineConsensus {
                 .setVal(this.epochstate.getVal().toBlockMessage())
                 .setValts(this.epochstate.getValts());
 
+        System.out.println("DEBUG1");
         for (WSEntry e : this.epochstate.getWriteset())
             stateMessageBuilder.addWriteset(e);
 
+        System.out.println("DEBUG2");
         StateMessage stateMessage = stateMessageBuilder.build();
+        System.out.println("DEBUG3");
         Message packet = Message.newBuilder().setCode(MessageCode.STATE)
                 .setMessage(stateMessage.toByteString()).build();
         this.cc.send(this.leaderId, packet);
+        System.out.println("DEBUG4");
         return true;
     }
 
