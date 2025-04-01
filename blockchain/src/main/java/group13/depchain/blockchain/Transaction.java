@@ -33,7 +33,8 @@ public class Transaction {
     }
 
     public boolean validateSignature(PublicKey senderPublicKey) throws Exception {
-        String msg = from + to + amount + nonce + isTransfer + payload;
+        int type_id = isTransfer ? 0 : 1;
+        String msg = from + to + amount + nonce + type_id + payload;
         return Util.verifyTransactionDS(msg.getBytes(), signature, senderPublicKey);
     }
 
