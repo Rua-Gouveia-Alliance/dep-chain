@@ -92,7 +92,7 @@ public class BlockchainState {
 
     public void save(Block block) {
         ObjectMapper objectMapper = new ObjectMapper();
-        File statesDirectory = new File("./blockchainStates/");
+        File statesDirectory = new File("./blockhain/states");
         if (!statesDirectory.exists()) {
             statesDirectory.mkdir();
         }
@@ -240,7 +240,7 @@ public class BlockchainState {
         // --- Blacklist Contract ---
         String blacklistBytecode = "0x" + readBinFile(genSourcesPath + "Blacklist.bin");
         ContractAccount blacklistAccount = new ContractAccount(blacklistAddress, blacklistBytecode,
-            deployerAddress);
+                deployerAddress);
         blacklistAccount.setBalance(0);
         genesisState.insertAccount(blacklistAccount);
 
@@ -263,7 +263,7 @@ public class BlockchainState {
         fis.read(fileBytes);
         Bytes bytes = Bytes.wrap(fileBytes);
         fis.close();
-        
+
         return bytes.toHexString();
     }
 }

@@ -113,7 +113,7 @@ public class ContractAccount extends BlockchainAccount {
 
     public void deploy(String deployCode, String deployer) {
         SimpleWorld world = new SimpleWorld();
-        Bytes code = Bytes.fromHexString(contractCode);
+        Bytes code = Bytes.fromHexString(deployCode);
 
         Address from = Address.fromHexString(deployer);
         Address to = Address.fromHexString(this.address);
