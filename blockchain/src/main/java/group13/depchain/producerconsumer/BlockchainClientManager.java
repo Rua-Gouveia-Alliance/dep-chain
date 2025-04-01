@@ -50,6 +50,10 @@ public class BlockchainClientManager extends Thread {
                     // check trasaction validity
                     if (!tx.validate(ku)) {
                         System.out.println("[ClientManager] Invalid transaction.");
+
+                        Response.Builder response = Response.newBuilder();
+                        response.addEntries("Failed transaction validation.");
+                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
                         continue;
                     }
 
@@ -67,9 +71,13 @@ public class BlockchainClientManager extends Thread {
 
                     Response.Builder response = Response.newBuilder();
                     this.decided.lock();
-                    for (Block e : this.decided.getContainer())
-                        for (Transaction t : e.getTransactions())
-                            response.addEntries(t.toString());
+                    for (Block e : this.decided.getContainer()) {
+                        for (Transaction t : e.getTransactions()) {
+                            if (t.getSignatureHex().equals(tx.getSignatureHex())) {
+                                response.addEntries(t.getReturnData());
+                            }
+                        }
+                    }
                     this.decided.unlock();
 
                     out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));

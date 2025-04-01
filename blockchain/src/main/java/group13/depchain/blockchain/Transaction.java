@@ -21,6 +21,8 @@ public class Transaction {
     private final String payload;
     private final byte[] signature;
 
+    private String returnData;
+
     public Transaction(String from, String to, long amount, long nonce,
             boolean isTransfer, String payload, byte[] signature) {
         this.from = from;
@@ -30,6 +32,8 @@ public class Transaction {
         this.isTransfer = isTransfer;
         this.payload = payload;
         this.signature = signature;
+
+        this.returnData = "Unknown return.";
     }
 
     public boolean validateSignature(PublicKey senderPublicKey) throws Exception {
@@ -75,6 +79,14 @@ public class Transaction {
     @JsonIgnore
     public byte[] getSignature() {
         return signature;
+    }
+
+    public String getReturnData() {
+        return returnData;
+    }
+
+    public void setReturnData(String returnData) {
+        this.returnData = returnData;
     }
 
     @JsonProperty("signature")

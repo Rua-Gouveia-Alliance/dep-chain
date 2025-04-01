@@ -39,6 +39,7 @@ public class BlockchainState {
 
     public void executeBlock(Block block) {
         for (Transaction tx : block.getTransactions()) {
+            boolean status;
             if (tx.isTransfer()) {
                 BlockchainAccount from = getAccount(tx.getFrom());
                 BlockchainAccount to = getAccount(tx.getTo());
@@ -53,18 +54,22 @@ public class BlockchainState {
                     insertAccount(to);
                 }
 
-                from.executeTransaction(this, tx);
-                to.executeTransaction(this, tx);
+                status = from.executeTransaction(this, tx);
+                status = to.executeTransaction(this, tx);
             } else {
                 BlockchainAccount contract = getAccount(tx.getTo());
-
-                if (contract == null) {
-                    // TODO: support contract deployment?
-                    contract = new ContractAccount(tx.getTo(), "");
-                    insertAccount(contract);
+                if (contract == null || !(contract instanceof ContractAccount)) {
+                    tx.setReturnData("Destination account is not a contract.");
+                    continue;
                 }
 
-                contract.executeTransaction(this, tx);
+                status = contract.executeTransaction(this, tx);
+            }
+
+            if (status) {
+                tx.setReturnData("Transaction executed successfully. " + tx.getReturnData());
+            } else {
+                tx.setReturnData("Transaction failed. " + tx.getReturnData());
             }
         }
 

@@ -50,13 +50,12 @@ public class ContractAccount extends BlockchainAccount {
     }
 
     @Override
-    public void executeTransaction(BlockchainState state, Transaction transaction) {
+    public boolean executeTransaction(BlockchainState state, Transaction transaction) {
         if (transaction.isTransfer() && transaction.getTo().equals(this.address)) {
-            deposit(transaction.getAmount());
-            return;
+            return deposit(transaction.getAmount());
         } else if (transaction.isTransfer() && transaction.getFrom().equals(this.address)) {
-            // TODO propagate errors
-            return;
+            System.out.println("Cannot withdraw from contract account.");
+            return false;
         }
 
         // contract execution
@@ -113,6 +112,9 @@ public class ContractAccount extends BlockchainAccount {
         // update balances
         this.balance = contractAccount.getBalance().toLong();
         state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
+
+        transaction.setReturnData(extractReturnData(output));
+        return true;
     }
 
     public void deploy(String deployCode, String deployer) {
