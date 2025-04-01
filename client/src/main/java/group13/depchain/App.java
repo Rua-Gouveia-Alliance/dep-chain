@@ -33,7 +33,7 @@ public class App {
                 System.out.println("1. Check Current Balance");
                 System.out.println("2. Execute Transaction");
                 System.out.println("3. Execute Smart Contract");
-                System.out.println("4. Read Blockchain Current State");
+                System.out.println("4. Current Read Blockchain State");
                 System.out.println("5. Exit");
                 System.out.print("Please choose an option (1-5): ");
 
@@ -47,7 +47,27 @@ public class App {
                         handleTransfer(client, scanner);
                         break;
                     case 3:
-                        handleContractExecution(client, scanner);
+                        System.out.println("\n=== Contract Execution ===");
+                        System.out.println("1. IST Coin - Transfer");
+                        System.out.println("2. IST Coin - Check Balance");
+                        System.out.println("3. Custom");
+                        System.out.println("4. Back");
+                        System.out.print("Please choose an option (1-5): ");
+
+                        int contractChoice = scanner.nextInt();
+
+                        if (contractChoice == 1) {
+                            handleISTCoinTransfer(client, scanner); // TODO
+                        } else if (contractChoice == 2) {
+                            handleISTCoinCheckBalance(client, scanner); // TODO
+                        } else if (contractChoice == 3) {
+                            handleContractExecution(client, scanner);
+                        } else if (contractChoice == 4) {
+                            System.out.println("Going back to main menu...");
+                        } else {
+                            System.out.println("Invalid input.");
+                            System.out.println("Going back to main menu...");
+                        }
                         break;
                     case 4:
                         handleReadState(client);
@@ -87,7 +107,7 @@ public class App {
     private static void handleContractExecution(BlockchainClient client, Scanner scanner) throws IOException {
         System.out.print("Enter contract address: ");
         String to = scanner.next();
-        System.out.print("Enter payload: ");
+        System.out.print("Enter payload (call data): ");
         String payload = scanner.next();
 
         Request request = client.createTransaction(false, to, 0, payload);
