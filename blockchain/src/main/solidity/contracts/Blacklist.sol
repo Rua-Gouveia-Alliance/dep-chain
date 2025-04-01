@@ -26,31 +26,31 @@ contract Blacklist {
         admins[msg.sender] = true;  // Owner is an admin by default
     }
 
-    function addAdmin(address account) external onlyOwner {
+    function addAdmin(address account) public onlyOwner {
         admins[account] = true;
         emit AdminAdded(account);
     }
 
-    function removeAdmin(address account) external onlyOwner {
+    function removeAdmin(address account) public onlyOwner {
         admins[account] = false;
         emit AdminRemoved(account);
     }
 
-    function addToBlacklist(address account) external onlyAdmin {
+    function addToBlacklist(address account) public onlyAdmin {
         blacklisted[account] = true;
         emit AddedToBlacklist(account);
     }
 
-    function removeFromBlacklist(address account) external onlyAdmin {
+    function removeFromBlacklist(address account) public onlyAdmin {
         blacklisted[account] = false;
         emit RemovedFromBlacklist(account);
     }
 
-    function isBlacklisted(address account) external view returns (bool) {
+    function isBlacklisted(address account) public view returns (bool) {
         return blacklisted[account];
     }
 
-    function isAdmin(address account) external view returns (bool) {
+    function isAdmin(address account) public view returns (bool) {
         return admins[account];
     }
 }

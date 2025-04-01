@@ -2,19 +2,14 @@
 pragma solidity ^0.8.20;
 
 import "../../../../openzeppelin/ERC20.sol";
+import "./Blacklist.sol";
 
-interface IBlacklist {
-    function isBlacklisted(address account) external view returns (bool);
-}
 
-contract ISTCoin is ERC20 {
-    IBlacklist private blacklist;
+contract ISTCoin is ERC20, Blacklist {
 
     constructor(
-        uint256 totalSupply,
-        address blacklistAddress
-    ) ERC20("ISTCoin", "IST") {
-        blacklist = IBlacklist(blacklistAddress);
+        uint256 totalSupply
+    ) ERC20("ISTCoin", "IST") Blacklist() {
         _mint(msg.sender, totalSupply * 10 ** decimals());
     }
 
@@ -22,8 +17,8 @@ contract ISTCoin is ERC20 {
         address to,
         uint256 amount
     ) public override returns (bool) {
-        require(!blacklist.isBlacklisted(msg.sender), "Sender is blacklisted");
-        require(!blacklist.isBlacklisted(to), "Receiver is blacklisted");
+        require(!isBlacklisted(msg.sender), "Sender is blacklisted");
+        require(!isBlacklisted(to), "Receiver is blacklisted");
         return super.transferFrom(msg.sender, to, amount);
     }
 
@@ -32,8 +27,8 @@ contract ISTCoin is ERC20 {
         address to,
         uint256 amount
     ) public override returns (bool) {
-        require(!blacklist.isBlacklisted(from), "Sender is blacklisted");
-        require(!blacklist.isBlacklisted(to), "Receiver is blacklisted");
+        require(!isBlacklisted(from), "Sender is blacklisted");
+        require(!isBlacklisted(to), "Receiver is blacklisted");
         return super.transferFrom(from, to, amount);
     }
 }
