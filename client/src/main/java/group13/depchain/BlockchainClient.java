@@ -20,7 +20,6 @@ import group13.depchain.Client.*;
 
 public class BlockchainClient {
 
-    private final int id;
     private final Socket socket;
     private final PrintWriter out;
     private final BufferedReader in;
@@ -28,7 +27,6 @@ public class BlockchainClient {
     private final String address;
 
     public BlockchainClient(int id, PrivateKey privateKey, String address) throws Exception {
-        this.id = id;
         this.privateKey = privateKey;
         this.address = address;
 
