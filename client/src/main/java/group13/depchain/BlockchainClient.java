@@ -35,10 +35,12 @@ public class BlockchainClient {
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
-    public byte[] genSignature(boolean isTransfer, String to, long amount, long nonce, String payload) {
-        int type_id = isTransfer ? 0 : 1;
+    public byte[] genSignature(RequestType type, boolean isTransfer, String to, long amount, long nonce,
+            String payload) {
+        int type_n = type.getNumber();
+        int transfer_type = isTransfer ? 0 : 1;
 
-        String msg = address + to + amount + nonce + type_id + payload;
+        String msg = type_n + address + to + amount + nonce + transfer_type + payload;
         byte[] raw = msg.getBytes();
 
         Signature ecdsaSign;
@@ -54,17 +56,54 @@ public class BlockchainClient {
         }
     }
 
-    public Request createRequest(boolean isTransfer, String to, long amount, String payload) {
+    public Request createTransaction(boolean isTransfer, String to, long amount, String payload) {
         long nonce = System.currentTimeMillis();
 
         Request.Builder requestBuilder = Request.newBuilder();
+        requestBuilder.setType(RequestType.TRANSACTION);
         requestBuilder.setFrom(address);
         requestBuilder.setTo(to);
         requestBuilder.setAmount(amount);
         requestBuilder.setNonce(nonce);
         requestBuilder.setIsTransfer(isTransfer);
         requestBuilder.setPayload(payload);
-        requestBuilder.setSignature(ByteString.copyFrom(genSignature(isTransfer, to, amount, nonce, payload)));
+        requestBuilder.setSignature(
+                ByteString.copyFrom(genSignature(RequestType.TRANSACTION, isTransfer, to, amount, nonce, payload)));
+
+        return requestBuilder.build();
+    }
+
+    public Request createCheckBalance() {
+        long nonce = System.currentTimeMillis();
+
+        Request.Builder requestBuilder = Request.newBuilder();
+        requestBuilder.setType(RequestType.CHECK_BALANCE);
+        requestBuilder.setFrom(address);
+        requestBuilder.setTo(address);
+        requestBuilder.setAmount(0);
+        requestBuilder.setNonce(nonce);
+        requestBuilder.setIsTransfer(false);
+        requestBuilder.setPayload("");
+        requestBuilder
+                .setSignature(
+                        ByteString.copyFrom(genSignature(RequestType.CHECK_BALANCE, false, address, 0, nonce, "")));
+
+        return requestBuilder.build();
+    }
+
+    public Request createReadState() {
+        long nonce = System.currentTimeMillis();
+
+        Request.Builder requestBuilder = Request.newBuilder();
+        requestBuilder.setType(RequestType.READ_STATE);
+        requestBuilder.setFrom(address);
+        requestBuilder.setTo(address);
+        requestBuilder.setAmount(0);
+        requestBuilder.setNonce(nonce);
+        requestBuilder.setIsTransfer(false);
+        requestBuilder.setPayload("");
+        requestBuilder
+                .setSignature(ByteString.copyFrom(genSignature(RequestType.READ_STATE, false, address, 0, nonce, "")));
 
         return requestBuilder.build();
     }

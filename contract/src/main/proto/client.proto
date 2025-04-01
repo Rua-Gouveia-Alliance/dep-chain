@@ -2,14 +2,21 @@ syntax = "proto3";
 
 package group13.depchain;
 
+enum RequestType {
+  CHECK_BALANCE = 0;
+  READ_STATE = 1;
+  TRANSACTION = 2;
+}
+
 message Request {
-  string from = 1;
-  string to = 2;
-  int64 amount = 3;
-  int64 nonce = 4;
-  bool isTransfer = 5;
-  string payload = 6;
-  bytes signature = 7;
+  RequestType type = 1;
+  string from = 2;
+  string to = 3;
+  int64 amount = 4;
+  int64 nonce = 5;
+  bool isTransfer = 6;
+  string payload = 7;
+  bytes signature = 8;
 }
 
 message Response {

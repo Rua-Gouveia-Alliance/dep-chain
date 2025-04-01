@@ -30,26 +30,34 @@ public class App {
 
             do {
                 System.out.println("\n=== DepChain Client ===");
-                System.out.println("1. Execute Transaction");
-                System.out.println("2. Execute Smart Contract");
-                System.out.println("3. Exit");
-                System.out.print("Please choose an option (1-3): ");
+                System.out.println("1. Check Current Balance");
+                System.out.println("2. Execute Transaction");
+                System.out.println("3. Execute Smart Contract");
+                System.out.println("4. Read Blockchain Current State");
+                System.out.println("5. Exit");
+                System.out.print("Please choose an option (1-5): ");
 
                 choice = scanner.nextInt();
 
                 switch (choice) {
                     case 1:
-                        handleTransfer(client, scanner);
+                        handleCheckBalance(client);
                         break;
                     case 2:
-                        handleContractExecution(client, scanner);
+                        handleTransfer(client, scanner);
                         break;
                     case 3:
+                        handleContractExecution(client, scanner);
+                        break;
+                    case 4:
+                        handleReadState(client);
+                        break;
+                    case 5:
                         break;
                     default:
                         System.out.println("Invalid input.");
                 }
-            } while (choice != 3);
+            } while (choice != 5);
 
             client.close();
             scanner.close();
@@ -67,7 +75,7 @@ public class App {
         System.out.print("Enter amount to transfer: ");
         long amount = scanner.nextLong();
 
-        Request request = client.createRequest(true, to, amount, "");
+        Request request = client.createTransaction(true, to, amount, "");
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
@@ -82,7 +90,27 @@ public class App {
         System.out.print("Enter payload: ");
         String payload = scanner.next();
 
-        Request request = client.createRequest(false, to, 0, payload);
+        Request request = client.createTransaction(false, to, 0, payload);
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
+        }
+    }
+
+    private static void handleCheckBalance(BlockchainClient client) throws IOException {
+        Request request = client.createCheckBalance();
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
+        }
+    }
+
+    private static void handleReadState(BlockchainClient client) throws IOException {
+        Request request = client.createReadState();
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();

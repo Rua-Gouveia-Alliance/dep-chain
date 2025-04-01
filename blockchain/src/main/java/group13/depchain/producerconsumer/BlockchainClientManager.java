@@ -10,17 +10,20 @@ import java.util.Base64;
 import com.google.protobuf.InvalidProtocolBufferException;
 import group13.depchain.Client.*;
 import group13.depchain.blockchain.Block;
+import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 import group13.depchain.crypto.KeyManager;
 
 public class BlockchainClientManager extends Thread {
     private final int clientId;
+    private final BlockchainState state;
     private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<Transaction> pending;
 
-    public BlockchainClientManager(int clientId, ConcurrentQueue<Block> decided,
+    public BlockchainClientManager(int clientId, BlockchainState state, ConcurrentQueue<Block> decided,
             ConcurrentQueue<Transaction> pending) {
         this.clientId = clientId;
+        this.state = state;
         this.decided = decided;
         this.pending = pending;
     }
@@ -53,6 +56,19 @@ public class BlockchainClientManager extends Thread {
 
                         Response.Builder response = Response.newBuilder();
                         response.addEntries("Failed transaction validation.");
+                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
+                        continue;
+                    }
+
+                    // check if transaction is checkBalance
+                    if (tx.getType() == RequestType.CHECK_BALANCE) {
+                        Response.Builder response = Response.newBuilder();
+                        response.addEntries("Balance: " + this.state.getAccountBalance(tx.getFrom()));
+                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
+                        continue;
+                    } else if (tx.getType() == RequestType.READ_STATE) {
+                        Response.Builder response = Response.newBuilder();
+                        response.addEntries(this.state.toString());
                         out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
                         continue;
                     }

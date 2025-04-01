@@ -96,6 +96,14 @@ public class BlockchainState {
         return accounts.get(address);
     }
 
+    public long getAccountBalance(String address) {
+        BlockchainAccount account = accounts.get(address);
+        if (account != null) {
+            return account.getBalance();
+        }
+        return 0;
+    }
+
     public void save(Block block) {
         ObjectMapper objectMapper = new ObjectMapper();
         File statesDirectory = new File("./blockchain/states");
@@ -269,8 +277,6 @@ public class BlockchainState {
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("BlockchainState:\n");
-        sb.append("Block ID: ").append(blockId).append("\n");
-        sb.append("Accounts:\n");
         for (Enumeration<String> keys = accounts.keys(); keys.hasMoreElements();) {
             String key = keys.nextElement();
             BlockchainAccount account = accounts.get(key);

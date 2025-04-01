@@ -42,12 +42,20 @@ public class App {
 
         generateFiles(N, clientN);
 
-        BlockchainMember member = new BlockchainMember(id, N, decided, pending);
+        BlockchainState state = null;
+        try {
+            state = BlockchainState.load("./blockchain/states/");
+        } catch (Exception e) {
+            System.out.println("[BlockchainMember] Error loading state: " + e.getMessage());
+            state = new BlockchainState();
+        }
+
+        BlockchainMember member = new BlockchainMember(id, state, N, decided, pending);
         member.start();
 
         if (id == 0) {
             for (int i = 0; i < clientN; ++i) {
-                BlockchainClientManager manager = new BlockchainClientManager(i, decided, pending);
+                BlockchainClientManager manager = new BlockchainClientManager(i, state, decided, pending);
                 manager.start();
                 clients.add(manager);
             }

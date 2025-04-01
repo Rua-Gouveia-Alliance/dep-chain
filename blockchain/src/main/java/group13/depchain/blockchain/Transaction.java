@@ -7,10 +7,10 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 
 import group13.depchain.Client.Request;
+import group13.depchain.Client.RequestType;
 import group13.depchain.Messages.TransactionMessage;
 import group13.depchain.crypto.Util;
 
-// TODO: add contract deployment type?
 public class Transaction {
 
     private final String from;
@@ -21,9 +21,10 @@ public class Transaction {
     private final String payload;
     private final byte[] signature;
 
+    private final RequestType type;
     private String returnData;
 
-    public Transaction(String from, String to, long amount, long nonce,
+    public Transaction(RequestType type, String from, String to, long amount, long nonce,
             boolean isTransfer, String payload, byte[] signature) {
         this.from = from;
         this.to = to;
@@ -33,12 +34,15 @@ public class Transaction {
         this.payload = payload;
         this.signature = signature;
 
+        this.type = type;
         this.returnData = "Unknown return.";
     }
 
     public boolean validateSignature(PublicKey senderPublicKey) throws Exception {
-        int type_id = isTransfer ? 0 : 1;
-        String msg = from + to + amount + nonce + type_id + payload;
+        int type_n = type.getNumber();
+        int transfer_type = isTransfer ? 0 : 1;
+
+        String msg = type_n + from + to + amount + nonce + transfer_type + payload;
         return Util.verifyTransactionDS(msg.getBytes(), signature, senderPublicKey);
     }
 
@@ -89,6 +93,11 @@ public class Transaction {
         this.returnData = returnData;
     }
 
+    @JsonIgnore
+    public RequestType getType() {
+        return type;
+    }
+
     @JsonProperty("signature")
     public String getSignatureHex() {
         StringBuilder sb = new StringBuilder();
@@ -117,6 +126,7 @@ public class Transaction {
 
     public static Transaction fromTransactionMessage(TransactionMessage request) {
         return new Transaction(
+                RequestType.TRANSACTION,
                 request.getFrom(),
                 request.getTo(),
                 request.getAmount(),
@@ -139,6 +149,7 @@ public class Transaction {
 
     public static Transaction fromRequest(Request request) {
         return new Transaction(
+                request.getType(),
                 request.getFrom(),
                 request.getTo(),
                 request.getAmount(),
