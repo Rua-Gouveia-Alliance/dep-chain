@@ -7,6 +7,9 @@ import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
+import org.apache.commons.lang3.StringUtils;
+import org.bouncycastle.util.encoders.Hex;
+
 import group13.depchain.Client.*;
 
 public class App {
@@ -58,9 +61,9 @@ public class App {
                         int contractChoice = scanner.nextInt();
 
                         if (contractChoice == 1) {
-                            //handleISTCoinTransfer(client, scanner); // TODO
+                            handleISTCoinTransfer(client, scanner); // TODO
                         } else if (contractChoice == 2) {
-                            //handleISTCoinCheckBalance(client, scanner); // TODO
+                            handleISTCoinCheckBalance(client, scanner); // TODO
                         } else if (contractChoice == 3) {
                             handleContractExecution(client, scanner);
                         } else if (contractChoice == 4) {
@@ -86,6 +89,39 @@ public class App {
 
         } catch (Exception e ) {
             e.printStackTrace();
+        }
+
+    }
+
+    private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner) throws IOException {
+        String functionSignature = "0x70a08231"; // balanceOf(address)
+        Request request = client.createTransaction(false, client.getAddress(), 0, functionSignature);
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
+        }
+    }
+
+    private static void handleISTCoinTransfer(BlockchainClient client, Scanner scanner) throws IOException {
+        System.out.print("Enter recipient account address: ");
+        String to = scanner.next();
+        System.out.print("Enter amount to transfer: ");
+        long amount = scanner.nextLong();
+
+        //String hexTo = StringUtils.leftPad(Hex.toHexString(to.getBytes()), 64, "0");
+        String hexAmount = StringUtils.leftPad(Long.toHexString(amount), 64, "0");
+        System.out.println(hexAmount);
+        String functionSignature = "0xa9059cbb";  // transfer(address,uint256)
+        String payload = functionSignature + StringUtils.leftPad(to, 64, "0") + hexAmount;
+        System.out.println(payload);
+        Request request = client.createTransaction(false, to, 0, payload);
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
         }
 
     }
