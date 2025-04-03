@@ -127,9 +127,10 @@ public class BlockchainClient {
     }
 
     public void close() throws IOException {
+        socket.close();
         in.close();
         out.close();
-        socket.close();
+        
     }
 
 }

@@ -15,6 +15,7 @@ import group13.depchain.blockchain.Transaction;
 import group13.depchain.crypto.KeyManager;
 
 public class BlockchainClientManager extends Thread {
+    private boolean isActive;
     private final int clientId;
     private final BlockchainState state;
     private final ConcurrentQueue<Block> decided;
@@ -26,6 +27,7 @@ public class BlockchainClientManager extends Thread {
         this.state = state;
         this.decided = decided;
         this.pending = pending;
+        this.isActive = true;
     }
 
     @Override
@@ -40,9 +42,28 @@ public class BlockchainClientManager extends Thread {
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
 
             while (true) {
+                
+                if (!isActive) {
+                    clientSocket = serverSocket.accept();
+                    System.out.println("[ClientManager] Client connected.");
+                    in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                    out = new PrintWriter(clientSocket.getOutputStream(), true);
+                    isActive = true;
+                }
+
                 String message = in.readLine();
-                if (message == null)
+                if (message == null) {
+                    System.out.println("[ClientManager] Client disconnected.");
+                    out.close();
+                    in.close();
+                    clientSocket.close();
+                    isActive = false;
+                    continue;
+                }
+                // TODO: to "close" serverSocket
+                if (message == "CLOSE")
                     break;
+                    
 
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
@@ -102,9 +123,6 @@ public class BlockchainClientManager extends Thread {
                 }
             }
 
-            in.close();
-            out.close();
-            clientSocket.close();
             serverSocket.close();
         } catch (Exception e) {
             e.printStackTrace();

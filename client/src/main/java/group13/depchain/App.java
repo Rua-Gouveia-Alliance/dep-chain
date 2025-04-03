@@ -3,6 +3,7 @@ package group13.depchain;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -57,9 +58,9 @@ public class App {
                         int contractChoice = scanner.nextInt();
 
                         if (contractChoice == 1) {
-                            handleISTCoinTransfer(client, scanner); // TODO
+                            //handleISTCoinTransfer(client, scanner); // TODO
                         } else if (contractChoice == 2) {
-                            handleISTCoinCheckBalance(client, scanner); // TODO
+                            //handleISTCoinCheckBalance(client, scanner); // TODO
                         } else if (contractChoice == 3) {
                             handleContractExecution(client, scanner);
                         } else if (contractChoice == 4) {
@@ -83,7 +84,7 @@ public class App {
             scanner.close();
             System.out.println("Exiting...");
 
-        } catch (Exception e) {
+        } catch (Exception e ) {
             e.printStackTrace();
         }
 
