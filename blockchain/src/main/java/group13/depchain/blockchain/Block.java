@@ -14,7 +14,7 @@ import com.google.protobuf.ByteString;
 public class Block {
     private byte[] blockHash;
     private final byte[] previousBlockHash;
-    private final int capacity = 1;
+    private final int capacity = 2;
     private final boolean isNullBlock;
     private final boolean aborted;
     private final List<Transaction> transactions;
@@ -69,6 +69,10 @@ public class Block {
         return this.transactions.size() == this.capacity;
     }
 
+    public boolean empty() {
+        return this.transactions.size() == 0;
+    }
+
     public void append(Transaction tx) {
         assert !this.full() : "Appending to a full block!";
         this.transactions.add(tx);
@@ -107,7 +111,7 @@ public class Block {
     }
 
     public void hash() {
-        assert this.full() : "Hashing a block that's not full!";
+        //assert this.full() : "Hashing a block that's not full!";
         this.blockHash = Util.hash(String.join("", this.transactions.toString()));
     }
 

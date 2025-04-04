@@ -57,13 +57,24 @@ public class BlockchainMember extends Thread {
                 if (this.id == 0 && proposed == null) {
                     Block prev = this.decided.top();
                     proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
-                    while (!proposed.full()) {
-                        while (this.pending.length() == 0) {
+
+                    long timeout = 10_000;
+                    long startTimeOut = System.currentTimeMillis();
+                    long deadline = startTimeOut + timeout;
+                    while ((!proposed.full() && System.currentTimeMillis() < deadline) || proposed.empty()) {
+                        while (this.pending.length() == 0 && proposed.empty()) {
                             synchronized (this.pending.cond) {
-                                this.pending.waitChange();
+                                long startTimeIn = System.currentTimeMillis();
+                                long remainingTime = timeout - (System.currentTimeMillis() - startTimeIn);
+
+                                if (remainingTime <= 0)
+                                    break;
+                                this.pending.waitChangeTimeout(remainingTime);
                             }
                         }
-                        proposed.append(this.pending.pop());
+                        if (pending.length() != 0)
+                            proposed.append(this.pending.pop());
+
                     }
                     proposed.hash();
                 }

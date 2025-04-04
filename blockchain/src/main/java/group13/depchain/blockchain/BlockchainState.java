@@ -23,6 +23,7 @@ import java.math.BigInteger;
 public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
     private long blockId = 0;
+    private static String previousBlockHash;
 
     public BlockchainState() {
     }
@@ -115,7 +116,13 @@ public class BlockchainState {
         HashMap<String, Object> blockMap = new HashMap<>();
 
         blockMap.put("block_hash", block.getBlockHash());
-        blockMap.put("previous_block_hash", block.getPreviousBlockHash());
+
+        byte[] prevHash = block.getPreviousBlockHash();
+        if (prevHash == null)
+            blockMap.put("previous_block_hash", previousBlockHash);
+        else
+            blockMap.put("previous_block_hash", block.getPreviousBlockHash());
+
         blockMap.put("transactions", block.getTransactions());
 
         HashMap<String, Object> stateMap = new HashMap<>();
@@ -153,6 +160,8 @@ public class BlockchainState {
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(file);
+
+        previousBlockHash = root.get("previous_block_hash").asText();
 
         JsonNode stateNode = root.get("state");
         if (stateNode == null || !stateNode.isObject()) {

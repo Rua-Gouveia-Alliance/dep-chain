@@ -17,6 +17,10 @@ public class ConcurrentQueue<E> {
         mutex.unlock();
     }
 
+    public void waitChangeTimeout(long timeout) throws InterruptedException {
+        cond.wait(timeout);
+    }
+
     public void waitChange() throws InterruptedException {
         cond.wait();
     }
