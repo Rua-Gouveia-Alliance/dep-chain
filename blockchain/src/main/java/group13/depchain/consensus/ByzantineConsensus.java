@@ -180,7 +180,7 @@ public class ByzantineConsensus {
     private boolean deliverREAD(Message received) throws Exception {
         MessageCode code = received.getCode();
         int senderId = received.getSender(), ets = received.getEts();
-        if (code != MessageCode.READ || senderId != leaderId)
+        if (code != MessageCode.READ || senderId != leaderId || ets > this.ets)
             return false;
 
         System.out.println("[ByzantineConsensus] Delivered READ");
