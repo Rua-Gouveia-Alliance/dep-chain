@@ -15,7 +15,7 @@ import group13.depchain.blockchain.Transaction;
 import group13.depchain.crypto.KeyManager;
 
 public class BlockchainClientManager extends Thread {
-    private boolean isActive;
+    private boolean isActive, isRunning;
     private final int clientId;
     private final BlockchainState state;
     private final ConcurrentQueue<Block> decided;
@@ -27,7 +27,7 @@ public class BlockchainClientManager extends Thread {
         this.state = state;
         this.decided = decided;
         this.pending = pending;
-        this.isActive = true;
+        this.isRunning = true;
     }
 
     @Override
@@ -35,15 +35,18 @@ public class BlockchainClientManager extends Thread {
         try {
             PublicKey ku = KeyManager.getClientPublicKey(this.clientId, "./keys/clients");
             ServerSocket serverSocket = new ServerSocket(6000 + this.clientId);
+
             System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
             System.out.println("[ClientManager] Client connected.");
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+            this.isActive = true;
 
-            while (true) {
-                
+            while (isRunning) {
+
                 if (!isActive) {
+                    System.out.println("[ClientManager] Leader waiting for client.");
                     clientSocket = serverSocket.accept();
                     System.out.println("[ClientManager] Client connected.");
                     in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -60,10 +63,6 @@ public class BlockchainClientManager extends Thread {
                     isActive = false;
                     continue;
                 }
-                // TODO: to "close" serverSocket
-                if (message == "CLOSE")
-                    break;
-                    
 
                 try {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
