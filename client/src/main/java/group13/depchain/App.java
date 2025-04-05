@@ -3,12 +3,10 @@ package group13.depchain;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bouncycastle.util.encoders.Hex;
 
 import group13.depchain.Client.*;
 
@@ -21,9 +19,7 @@ public class App {
         }
 
         try {
-
             int id = Integer.valueOf(args[0]);
-
             PublicKey publicKey = WalletUtils.loadPublicKey(id, "./keys/clients");
             PrivateKey privateKey = WalletUtils.loadPrivateKey(id, "./keys/clients");
             String address = WalletUtils.getAddressFromPublicKey(publicKey);
@@ -87,15 +83,17 @@ public class App {
             scanner.close();
             System.out.println("Exiting...");
 
-        } catch (Exception e ) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
     }
 
-    private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner) throws IOException {
+    private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner)
+            throws IOException {
         String functionSignature = "0x70a08231"; // balanceOf(address)
-        Request request = client.createTransaction(false, client.getAddress(), 0, functionSignature);
+        Request request =
+                client.createTransaction(false, client.getAddress(), 0, functionSignature);
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
@@ -104,16 +102,17 @@ public class App {
         }
     }
 
-    private static void handleISTCoinTransfer(BlockchainClient client, Scanner scanner) throws IOException {
+    private static void handleISTCoinTransfer(BlockchainClient client, Scanner scanner)
+            throws IOException {
         System.out.print("Enter recipient account address: ");
         String to = scanner.next();
         System.out.print("Enter amount to transfer: ");
         long amount = scanner.nextLong();
 
-        //String hexTo = StringUtils.leftPad(Hex.toHexString(to.getBytes()), 64, "0");
+        // String hexTo = StringUtils.leftPad(Hex.toHexString(to.getBytes()), 64, "0");
         String hexAmount = StringUtils.leftPad(Long.toHexString(amount), 64, "0");
         System.out.println(hexAmount);
-        String functionSignature = "0xa9059cbb";  // transfer(address,uint256)
+        String functionSignature = "0xa9059cbb"; // transfer(address,uint256)
         String payload = functionSignature + StringUtils.leftPad(to, 64, "0") + hexAmount;
         System.out.println(payload);
         Request request = client.createTransaction(false, to, 0, payload);
@@ -126,7 +125,8 @@ public class App {
 
     }
 
-    private static void handleTransfer(BlockchainClient client, Scanner scanner) throws IOException {
+    private static void handleTransfer(BlockchainClient client, Scanner scanner)
+            throws IOException {
         System.out.print("Enter recipient account address: ");
         String to = scanner.next();
         System.out.print("Enter amount to transfer: ");
@@ -141,7 +141,8 @@ public class App {
         }
     }
 
-    private static void handleContractExecution(BlockchainClient client, Scanner scanner) throws IOException {
+    private static void handleContractExecution(BlockchainClient client, Scanner scanner)
+            throws IOException {
         System.out.print("Enter contract address: ");
         String to = scanner.next();
         System.out.print("Enter payload (call data): ");
