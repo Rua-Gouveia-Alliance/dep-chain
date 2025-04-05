@@ -7,8 +7,9 @@ import java.net.SocketException;
 import java.util.Arrays;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+
+import group13.depchain.Messages.Message;
 import group13.depchain.util.ProcessAddress;
-import group13.depchain.Messages.*;
 
 public class FairLossLink {
     private final ProcessAddress[] address_map;
@@ -31,7 +32,7 @@ public class FairLossLink {
     }
 
     public Message deliver() throws IOException {
-        byte[] rec = new byte[1024];
+        byte[] rec = new byte[65536]; // max 64kB
         DatagramPacket packet = new DatagramPacket(rec, rec.length);
         recSocket.receive(packet);
 

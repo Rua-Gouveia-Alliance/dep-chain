@@ -28,100 +28,99 @@ import com.google.protobuf.ByteString;
 
 class ByzantineConsensusTest {
 
-    void sendHonestMajorityWRITE(OngoingStubbing<Message> stub, int N) {
-        int f = (N - 1) / 3;
-        int maj = N - f;
+        void sendHonestMajorityWRITE(OngoingStubbing<Message> stub, int N) throws Exception {
+                int f = (N - 1) / 3;
+                int maj = N - f;
 
-        // Honest messages
-        for (int i = 0; i < maj; ++i) {
-            EpochState epochstate = new EpochState();
-            StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                    .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
+                // Honest messages
+                for (int i = 0; i < maj; ++i) {
+                        EpochState epochstate = new EpochState();
+                        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                                        .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
 
-            for (WSEntry e : epochstate.getWriteset())
-                stateMessageBuilder.addWriteset(e);
+                        for (WSEntry e : epochstate.getWriteset())
+                                stateMessageBuilder.addWriteset(e);
 
-            StateMessage stateMessage = stateMessageBuilder.build();
-            Message message = Message.newBuilder().setCode(MessageCode.STATE)
-                    .setMessage(stateMessage.toByteString()).build();
+                        StateMessage stateMessage = stateMessageBuilder.build();
+                        Message message = Message.newBuilder().setCode(MessageCode.STATE)
+                                        .setMessage(stateMessage.toByteString()).build();
 
-            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
-            byte[] ds = Util.ds(message.toByteArray(), privateKey);
-            DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
-                    .setDs(ByteString.copyFrom(ds)).build();
-            Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
-                    .setMessage(dsMessage.toByteString()).setSender(i).build();
-            stub.thenReturn(packet);
+                        PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
+                        byte[] ds = Util.ds(message.toByteArray(), privateKey);
+                        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
+                                        .setDs(ByteString.copyFrom(ds)).build();
+                        Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
+                                        .setMessage(dsMessage.toByteString()).setSender(i).build();
+                        stub.thenReturn(packet);
+                }
+
+                // Byzantine messages
+                for (int i = maj; i < maj + f; ++i) {
+                        Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
+                                        .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
+                        stub.thenReturn(packet);
+                }
         }
 
-        // Byzantine messages
-        for (int i = maj; i < maj + f; ++i) {
-            Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
-                    .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
-            stub.thenReturn(packet);
+        void sendHonestMajorityDSMESSAGE(OngoingStubbing<Message> stub, int N) throws Exception {
+                int f = (N - 1) / 3;
+                int maj = N - f;
+
+                // Honest messages
+                for (int i = 0; i < maj; ++i) {
+                        EpochState epochstate = new EpochState();
+                        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                                        .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
+
+                        for (WSEntry e : epochstate.getWriteset())
+                                stateMessageBuilder.addWriteset(e);
+
+                        StateMessage stateMessage = stateMessageBuilder.build();
+                        Message message = Message.newBuilder().setCode(MessageCode.STATE)
+                                        .setMessage(stateMessage.toByteString()).build();
+
+                        PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
+                        byte[] ds = Util.ds(message.toByteArray(), privateKey);
+                        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
+                                        .setDs(ByteString.copyFrom(ds)).build();
+                        Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
+                                        .setMessage(dsMessage.toByteString()).setSender(i).build();
+                        stub.thenReturn(packet);
+                }
+
+                // Byzantine messages
+                for (int i = maj; i < maj + f; ++i) {
+                        Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
+                                        .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
+                        stub.thenReturn(packet);
+                }
         }
-    }
 
-    void sendHonestMajorityDSMESSAGE(OngoingStubbing<Message> stub, int N) {
-        int f = (N - 1) / 3;
-        int maj = N - f;
+        void testHonestMajority(int id, int N) throws Exception {
+                AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
+                OngoingStubbing<Message> stub = when(mockAp2p.deliver());
 
-        // Honest messages
-        for (int i = 0; i < maj; ++i) {
-            EpochState epochstate = new EpochState();
-            StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                    .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
+                sendHonestMajorityDSMESSAGE(stub, N);
 
-            for (WSEntry e : epochstate.getWriteset())
-                stateMessageBuilder.addWriteset(e);
+                PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+                PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
+                ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, new EpochState(), KP, KUs, mockAp2p);
+                Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
+                                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
+                                .setSignature(ByteString.copyFrom(new byte[0])).build();
+                Transaction tx = Transaction.fromRequest(request);
+                Block proposed = new Block();
+                proposed.append(tx);
+                proposed.hash();
 
-            StateMessage stateMessage = stateMessageBuilder.build();
-            Message message = Message.newBuilder().setCode(MessageCode.STATE)
-                    .setMessage(stateMessage.toByteString()).build();
-
-            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
-            byte[] ds = Util.ds(message.toByteArray(), privateKey);
-            DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
-                    .setDs(ByteString.copyFrom(ds)).build();
-            Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
-                    .setMessage(dsMessage.toByteString()).setSender(i).build();
-            stub.thenReturn(packet);
+                Block result = bep.run(proposed);
+                assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+                                "Proposed block and result block do not match.");
         }
 
-        // Byzantine messages
-        for (int i = maj; i < maj + f; ++i) {
-            Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
-                    .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
-            stub.thenReturn(packet);
+        @Test
+        void testHonestMajorityLeader() throws Exception {
+                int id = 0, N = 6;
+                testHonestMajority(id, N);
         }
-    }
-
-    void testHonestMajority(int id, int N) {
-        AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
-        OngoingStubbing<Message> stub = when(mockAp2p.deliver());
-
-        sendHonestMajorityDSMESSAGE(stub, N);
-
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
-        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
-        ByzantineConsensus bep =
-                new ByzantineConsensus(id, 0, N, 0, new EpochState(), KP, KUs, mockAp2p);
-        Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
-                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
-                .setSignature(ByteString.copyFrom(new byte[0])).build();
-        Transaction tx = Transaction.fromRequest(request);
-        Block proposed = new Block();
-        proposed.append(tx);
-        proposed.hash();
-
-        Block result = bep.run(proposed);
-        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-                "Proposed block and result block do not match.");
-    }
-
-    @Test
-    void testHonestMajorityLeader() {
-        int id = 0, N = 6;
-        testHonestMajority(id, N);
-    }
 }
