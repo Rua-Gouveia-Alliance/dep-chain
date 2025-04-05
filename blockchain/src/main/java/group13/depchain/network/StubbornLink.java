@@ -9,6 +9,7 @@ import com.google.protobuf.ByteString;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import group13.depchain.util.ProcessAddress;
 import group13.depchain.Messages.*;
+import group13.depchain.crypto.Util;
 
 public class StubbornLink {
 
@@ -71,23 +72,7 @@ public class StubbornLink {
     }
 
     public Message deliver() throws IOException {
-        Message message = flp2p.deliver();
-        if (message != null) {
-            // TODO: DoS, isto nao e authenticated, ptt um atacante pode mandar ACKs em nome de um
-            // processo qq
-            if (message.getCode() == MessageCode.ACK) {
-                this.remove(message.getSender(), message.getSeq());
-                return null;
-            }
-
-            int sender = message.getSender();
-            Message ack = Message.newBuilder().setCode(MessageCode.ACK).setSender(this.id)
-                    .setSeq(message.getSeq()).setMessage(ByteString.copyFrom(new byte[0])).build();
-            this.mutex.lock();
-            this.flp2p.send(sender, ack);
-            this.mutex.unlock();
-        }
-        return message;
+        return flp2p.deliver();
     }
 
     public void close() {
@@ -101,5 +86,9 @@ public class StubbornLink {
         } finally {
             flp2p.close();
         }
+    }
+
+    public int getId() {
+        return this.id;
     }
 }

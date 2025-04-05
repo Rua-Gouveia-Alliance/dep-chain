@@ -38,9 +38,18 @@ public class AuthenticatedPerfectLink {
         sp2p.send(process, packet);
     }
 
+    public void sendAck(int process, Message message) throws Exception {
+        ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
+        MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
+
+        Message packet =
+                Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
+                        .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
+        sp2p.send(process, packet);
+    }
+
     public Message deliver() throws Exception {
         Message received = sp2p.deliver();
-
         if (received == null || received.getCode() != MessageCode.MACMESSAGE)
             return null;
 
@@ -58,7 +67,17 @@ public class AuthenticatedPerfectLink {
                 this.keys[contents.getSender()]) || delivered.contains(recId))
             return null;
 
+        
+        if (contents.getCode() == MessageCode.ACK) {
+            sp2p.remove(received.getSender(), received.getSeq());
+            return null;
+        }
         delivered.add(recId);
+
+        // Send signed ACK
+        Message ack = Message.newBuilder().setCode(MessageCode.ACK).setSeq(received.getSeq())
+                .setMessage(ByteString.copyFrom(new byte[0])).build();
+        this.sendAck(this.id.getSenderId(), ack);
         return contents;
     }
 

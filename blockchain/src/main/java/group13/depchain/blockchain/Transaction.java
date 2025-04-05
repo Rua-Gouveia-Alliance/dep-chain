@@ -121,6 +121,7 @@ public class Transaction {
                 ", isTranfer=" + isTransfer +
                 ", payload='" + payload + '\'' +
                 ", signature=" + sb.toString() +
+                ", returnData='" + returnData + '\'' +
                 '}';
     }
 

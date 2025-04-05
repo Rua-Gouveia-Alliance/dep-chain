@@ -114,6 +114,7 @@ public class ContractAccount extends BlockchainAccount {
         this.balance = contractAccount.getBalance().toLong();
         state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
 
+        System.out.println("[executeTransaction] Contract execution return: " + extractReturnData(output));
         transaction.setReturnData(extractReturnData(output));
         return true;
     }
