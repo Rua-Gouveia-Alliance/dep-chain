@@ -92,8 +92,7 @@ public class App {
     private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner)
             throws IOException {
         String functionSignature = "0x70a08231"; // balanceOf(address)
-        Request request =
-                client.createTransaction(false, client.getAddress(), 0, functionSignature);
+        Request request = client.createTransaction(false, client.getAddress(), 0, functionSignature);
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();

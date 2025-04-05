@@ -79,6 +79,7 @@ public class BlockchainMember extends Thread {
 
                 // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
                 // a chave public do recetor
+                System.out.println("[BlockchainMember] Proposing block: " + proposed);
                 Block decided = bep.run(proposed);
                 if (!this.running.get())
                     break;
@@ -88,15 +89,15 @@ public class BlockchainMember extends Thread {
                     continue;
                 }
 
+                // Execute decided block
+                state.executeBlock(decided);
+                System.out.println("[BlockchainMember] Decided: " + decided);
+
                 this.decided.push(decided);
                 synchronized (this.decided.cond) {
                     this.decided.notifyChange();
                 }
 
-                // Execute decided block
-                state.executeBlock(decided);
-
-                System.out.println("[BlockchainMember] Decided: " + decided);
                 proposed = null;
             }
             al.close();
