@@ -54,6 +54,14 @@ public class BlockchainState {
                 if (from == null) {
                     from = new EOAAccount(tx.getFrom(), 0);
                     insertAccount(from);
+                } else if (!(from instanceof EOAAccount)) {
+                    tx.setReturnData("From account is not an EOA.");
+                    continue;
+                }
+
+                if (!((EOAAccount) from).validateNonce(tx.getNonce())) {
+                    tx.setReturnData("Invalid nonce.");
+                    continue;
                 }
 
                 if (to == null) {
@@ -66,8 +74,22 @@ public class BlockchainState {
                 else
                     status = false;
             } else {
+                BlockchainAccount from = getAccount(tx.getFrom());
                 BlockchainAccount contract = getAccount(tx.getTo());
-                // TODO verify nonce of sender?
+
+                if (from == null) {
+                    from = new EOAAccount(tx.getFrom(), 0);
+                    insertAccount(from);
+                } else if (!(from instanceof EOAAccount)) {
+                    tx.setReturnData("From account is not an EOA.");
+                    continue;
+                }
+
+                if (!((EOAAccount) from).validateNonce(tx.getNonce())) {
+                    tx.setReturnData("Invalid nonce.");
+                    continue;
+                }
+
                 if (contract == null || !(contract instanceof ContractAccount)) {
                     tx.setReturnData("Destination account is not a contract.");
                     continue;
