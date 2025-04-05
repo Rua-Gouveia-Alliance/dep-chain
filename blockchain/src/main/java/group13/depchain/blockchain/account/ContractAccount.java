@@ -52,10 +52,11 @@ public class ContractAccount extends BlockchainAccount {
     @Override
     public boolean executeTransaction(BlockchainState state, Transaction transaction) {
         if (transaction.isTransfer() && transaction.getTo().equals(this.address)) {
-            return deposit(transaction.getAmount());
-        } else if (transaction.isTransfer() && transaction.getFrom().equals(this.address)) {
-            System.out.println("Cannot withdraw from contract account.");
-            return false;
+            if (!deposit(transaction.getAmount())) {
+                transaction.setReturnData("Invalid amount.");
+                return false;
+            }
+            return true;
         }
 
         // contract execution

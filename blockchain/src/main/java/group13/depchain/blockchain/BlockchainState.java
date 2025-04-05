@@ -54,6 +54,14 @@ public class BlockchainState {
                 if (from == null) {
                     from = new EOAAccount(tx.getFrom(), 0);
                     insertAccount(from);
+                } else if (!(from instanceof EOAAccount)) {
+                    tx.setReturnData("From account is not an EOA.");
+                    continue;
+                }
+
+                if (!((EOAAccount) from).validateNonce(tx.getNonce())) {
+                    tx.setReturnData("Invalid nonce.");
+                    continue;
                 }
 
                 if (to == null) {
@@ -61,10 +69,27 @@ public class BlockchainState {
                     insertAccount(to);
                 }
 
-                status = from.executeTransaction(this, tx);
-                status = to.executeTransaction(this, tx);
+                if (from.executeTransaction(this, tx))
+                    status = to.executeTransaction(this, tx);
+                else
+                    status = false;
             } else {
+                BlockchainAccount from = getAccount(tx.getFrom());
                 BlockchainAccount contract = getAccount(tx.getTo());
+
+                if (from == null) {
+                    from = new EOAAccount(tx.getFrom(), 0);
+                    insertAccount(from);
+                } else if (!(from instanceof EOAAccount)) {
+                    tx.setReturnData("From account is not an EOA.");
+                    continue;
+                }
+
+                if (!((EOAAccount) from).validateNonce(tx.getNonce())) {
+                    tx.setReturnData("Invalid nonce.");
+                    continue;
+                }
+
                 if (contract == null || !(contract instanceof ContractAccount)) {
                     tx.setReturnData("Destination account is not a contract.");
                     continue;
@@ -73,10 +98,11 @@ public class BlockchainState {
                 status = contract.executeTransaction(this, tx);
             }
 
+            String saved_return = tx.getReturnData();
             if (status) {
-                tx.setReturnData("Transaction executed successfully. " + tx.getReturnData());
+                tx.setReturnData("Done. " + saved_return);
             } else {
-                tx.setReturnData("Transaction failed. " + tx.getReturnData());
+                tx.setReturnData("Failed. " + saved_return);
             }
         }
 

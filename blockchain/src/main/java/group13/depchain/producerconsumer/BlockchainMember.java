@@ -55,23 +55,23 @@ public class BlockchainMember extends Thread {
                         new EpochState(), KP, KUs, al);
 
                 if (this.id == 0 && proposed == null) {
-                    proposed = new Block();
+                    proposed = new Block(false);
 
-                    long timeout = 10_000;
+                    long timeout = 30_000;
                     long startTimeOut = System.currentTimeMillis();
                     long deadline = startTimeOut + timeout;
                     while ((!proposed.full() && System.currentTimeMillis() < deadline) || proposed.empty()) {
-                        while (this.pending.length() == 0 && proposed.empty()) {
+                        long remainingTime = deadline - System.currentTimeMillis();
+                        if (this.pending.length() == 0) {
                             synchronized (this.pending.cond) {
-                                long startTimeIn = System.currentTimeMillis();
-                                long remainingTime = timeout - (System.currentTimeMillis() - startTimeIn);
-
-                                if (remainingTime <= 0)
-                                    break;
-                                this.pending.waitChangeTimeout(remainingTime);
+                                System.out.println("[BlockchainMember] Remaining time: " + remainingTime);
+                                if (remainingTime > 0)
+                                    this.pending.waitChangeTimeout(remainingTime);
+                                else
+                                    this.pending.waitChange();
                             }
                         }
-                        if (pending.length() != 0)
+                        while (pending.length() != 0)
                             proposed.append(this.pending.pop());
 
                     }
