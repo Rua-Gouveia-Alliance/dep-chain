@@ -13,7 +13,7 @@ import com.google.protobuf.ByteString;
 
 public class Block {
     private byte[] blockHash;
-    private final byte[] previousBlockHash;
+    private byte[] previousBlockHash;
     private final int capacity = 2;
     private final boolean isNullBlock;
     private final boolean aborted;
@@ -33,14 +33,6 @@ public class Block {
         this.transactions = new ArrayList<>();
         this.isNullBlock = false;
         this.aborted = aborted;
-    }
-
-    public Block(byte[] previous_block_hash) {
-        this.blockHash = new byte[0];
-        this.previousBlockHash = previous_block_hash;
-        this.transactions = new ArrayList<>();
-        this.isNullBlock = false;
-        this.aborted = false;
     }
 
     public Block(BlockMessage message) {
@@ -78,6 +70,10 @@ public class Block {
         this.transactions.add(tx);
     }
 
+    public void setPreviousBlockHash(byte[] previousBlockHash) {
+        this.previousBlockHash = previousBlockHash;
+    }
+
     public List<Transaction> getTransactions() {
         return this.transactions;
     }
@@ -111,7 +107,6 @@ public class Block {
     }
 
     public void hash() {
-        //assert this.full() : "Hashing a block that's not full!";
         this.blockHash = Util.hash(String.join("", this.transactions.toString()));
     }
 

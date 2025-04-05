@@ -1,12 +1,5 @@
 package group13.depchain.crypto;
 
-import javax.crypto.SecretKey;
-
-import org.bouncycastle.jcajce.provider.digest.Keccak;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
-import javax.crypto.Mac;
-
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,6 +10,12 @@ import java.security.Security;
 import java.security.Signature;
 import java.security.interfaces.ECPublicKey;
 import java.util.Arrays;
+
+import javax.crypto.Mac;
+import javax.crypto.SecretKey;
+
+import org.bouncycastle.jcajce.provider.digest.Keccak;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class Util {
 
@@ -101,5 +100,18 @@ public class Util {
         int start = Math.max(0, bytes.length - 32);
         System.arraycopy(bytes, start, result, 32 - (bytes.length - start), bytes.length - start);
         return result;
+    }
+
+    public static byte[] hexStringToByteArray(String s) {
+        if (s.startsWith("0x") || s.startsWith("0X"))
+            s = s.substring(2);
+
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i + 1), 16));
+        }
+        return data;
     }
 }

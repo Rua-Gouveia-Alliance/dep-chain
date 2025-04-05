@@ -55,8 +55,7 @@ public class BlockchainMember extends Thread {
                         new EpochState(), KP, KUs, al);
 
                 if (this.id == 0 && proposed == null) {
-                    Block prev = this.decided.top();
-                    proposed = new Block(prev == null ? new byte[0] : prev.getBlockHash());
+                    proposed = new Block();
 
                     long timeout = 10_000;
                     long startTimeOut = System.currentTimeMillis();
@@ -76,7 +75,6 @@ public class BlockchainMember extends Thread {
                             proposed.append(this.pending.pop());
 
                     }
-                    proposed.hash();
                 }
 
                 // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
