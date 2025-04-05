@@ -1,9 +1,6 @@
 package group13.depchain;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.List;
@@ -16,6 +13,7 @@ import group13.depchain.Client.*;
 public class App {
 
     private static String IST_COIN_ADDRESS = "0x4321dcbA4321daed1234dcba1234000000001ced";
+
     public static void main(String args[]) throws IOException {
 
         if (args.length < 1) {

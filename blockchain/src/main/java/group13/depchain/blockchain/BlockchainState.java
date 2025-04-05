@@ -21,7 +21,6 @@ import group13.depchain.crypto.Util;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigInteger;
 
 public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
