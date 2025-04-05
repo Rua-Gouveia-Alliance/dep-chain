@@ -2,6 +2,8 @@ package group13.depchain.blockchain;
 
 import java.security.PublicKey;
 
+import org.apache.tuweni.bytes.Bytes;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
@@ -50,9 +52,14 @@ public class Transaction {
         return Util.verifyTransactionAddress(from, senderPublicKey);
     }
 
+    public boolean validateFormat() {
+        return nonce >= 0 && amount >= 0 && Util.isValidHexString(from) && Util.isValidHexString(to)
+                && Util.isValidHexString(payload);
+    }
+
     public boolean validate(PublicKey senderPublicKey) throws Exception {
         // We use Ethereum's way of signing transactions
-        return validateSignature(senderPublicKey) && validateFrom(senderPublicKey);
+        return validateSignature(senderPublicKey) && validateFrom(senderPublicKey) && validateFormat();
     }
 
     // Getters

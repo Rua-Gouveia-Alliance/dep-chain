@@ -114,4 +114,9 @@ public class Util {
         }
         return data;
     }
+
+    public static boolean isValidHexString(String input) {
+        return input != null && input.matches("^0x?[0-9a-fA-F]+$");
+    }
+
 }

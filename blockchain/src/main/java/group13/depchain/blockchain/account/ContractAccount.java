@@ -114,8 +114,10 @@ public class ContractAccount extends BlockchainAccount {
         this.balance = contractAccount.getBalance().toLong();
         state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
 
-        System.out.println("[executeTransaction] Contract execution return: " + extractReturnData(output));
-        transaction.setReturnData(extractReturnData(output));
+        String returnData = extractReturnData(output);
+        System.out.println("[executeTransaction] Contract execution return: " + returnData);
+        if (!returnData.equals("0x"))
+            transaction.setReturnData(returnData);
         return true;
     }
 
@@ -161,10 +163,16 @@ public class ContractAccount extends BlockchainAccount {
         JsonObject jsonObject = JsonParser.parseString(lines[lines.length - 1]).getAsJsonObject();
 
         String memory = jsonObject.get("memory").getAsString();
-
         JsonArray stack = jsonObject.get("stack").getAsJsonArray();
+
+        if (stack.size() < 2)
+            return "0x";
+
         int offset = Integer.decode(stack.get(stack.size() - 1).getAsString());
         int size = Integer.decode(stack.get(stack.size() - 2).getAsString());
+
+        if (offset < 0 || size < 0 || offset + size > memory.length() / 2)
+            return "0x";
 
         String returnData = memory.substring(2 + offset * 2, 2 + offset * 2 + size * 2);
         return "0x" + returnData;
