@@ -1,6 +1,5 @@
 package group13.depchain.consensus;
 
-import java.util.List;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
@@ -26,6 +25,7 @@ public class ByzantineConsensus {
     private final int ets;
     private final int id;
     private final int leaderId;
+    private final Boolean[] abort;
 
     public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
             PrivateKey privateKey, PublicKey[] publicKeys, AuthenticatedPerfectLink al)
@@ -39,6 +39,7 @@ public class ByzantineConsensus {
         this.ets = ets;
         this.id = id;
         this.leaderId = leaderId;
+        this.abort = new Boolean[N];
 
         OutputPredicate sound = (messages) -> {
             EpochState[] S = new EpochState[this.N];
@@ -174,9 +175,9 @@ public class ByzantineConsensus {
 
         System.out.println("[ByzantineConsensus] Delivered READ");
 
-        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                .setVal(this.epochstate.getVal().toBlockMessage())
-                .setValts(this.epochstate.getValts());
+        StateMessage.Builder stateMessageBuilder =
+                StateMessage.newBuilder().setVal(this.epochstate.getVal().toBlockMessage())
+                        .setValts(this.epochstate.getValts());
 
         for (WSEntry e : this.epochstate.getWriteset())
             stateMessageBuilder.addWriteset(e);
@@ -242,6 +243,7 @@ public class ByzantineConsensus {
                     .setMessage(ByteString.copyFrom(new byte[0]));
             for (int i = 0; i < this.N; ++i)
                 al.send(i, builder);
+            this.abort[this.id] = true;
         }
     }
 
@@ -290,7 +292,17 @@ public class ByzantineConsensus {
             return;
 
         System.out.println("[ByzantineConsensus] Delivered ABORT");
-        this.decided = new Block(true);
+
+        this.abort[received.getSender()] = true;
+        int abortVotes = 0;
+        for (Boolean v : this.abort) {
+            if (v)
+                ++abortVotes;
+        }
+
+        // At least one correct process sent us ABORT
+        if (abortVotes > this.f)
+            this.decided = new Block(true);
     }
 
     public void deliver() throws Exception {
