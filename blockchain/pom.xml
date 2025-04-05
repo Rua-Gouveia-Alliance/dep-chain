@@ -10,6 +10,13 @@
 
     <artifactId>blockchain</artifactId>
 
+    <repositories>
+        <repository>
+            <id>hyperledger-besu</id>
+            <url>https://hyperledger.jfrog.io/artifactory/besu-maven</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>group13.depchain</groupId>
