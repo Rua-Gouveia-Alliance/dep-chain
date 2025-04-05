@@ -9,12 +9,15 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import group13.depchain.blockchain.account.BlockchainAccount;
 import group13.depchain.blockchain.account.ContractAccount;
 import group13.depchain.blockchain.account.EOAAccount;
+import group13.depchain.crypto.Util;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +26,7 @@ import java.math.BigInteger;
 public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
     private long blockId = 0;
-    private static String previousBlockHash;
+    private byte[] previousBlockHash = new byte[0];
 
     public BlockchainState() {
     }
@@ -39,6 +42,9 @@ public class BlockchainState {
     }
 
     public void executeBlock(Block block) {
+        block.setPreviousBlockHash(previousBlockHash);
+        block.hash();
+
         for (Transaction tx : block.getTransactions()) {
             boolean status;
             if (tx.isTransfer()) {
@@ -75,7 +81,10 @@ public class BlockchainState {
         }
 
         save(block);
+
+        // update state
         blockId++;
+        previousBlockHash = block.getBlockHash();
 
         // debug
         System.out.println(this.toString());
@@ -83,6 +92,24 @@ public class BlockchainState {
 
     public void setBlockId(long blockId) {
         this.blockId = blockId;
+    }
+
+    public void setPreviousBlockHash(byte[] previousBlockHash) {
+        this.previousBlockHash = previousBlockHash;
+    }
+
+    @JsonIgnore
+    public byte[] getPreviousBlockHash() {
+        return this.previousBlockHash;
+    }
+
+    @JsonProperty("previousBlockHash")
+    public String getPreviousBlockHashHex() {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : this.previousBlockHash) {
+            sb.append(String.format("%02x", b));
+        }
+        return "0x" + sb.toString();
     }
 
     public void insertAccount(BlockchainAccount account) {
@@ -116,12 +143,7 @@ public class BlockchainState {
         HashMap<String, Object> blockMap = new HashMap<>();
 
         blockMap.put("block_hash", block.getBlockHash());
-
-        byte[] prevHash = block.getPreviousBlockHash();
-        if (prevHash == null)
-            blockMap.put("previous_block_hash", previousBlockHash);
-        else
-            blockMap.put("previous_block_hash", block.getPreviousBlockHash());
+        blockMap.put("previous_block_hash", previousBlockHash);
 
         blockMap.put("transactions", block.getTransactions());
 
@@ -160,8 +182,6 @@ public class BlockchainState {
 
         ObjectMapper mapper = new ObjectMapper();
         JsonNode root = mapper.readTree(file);
-
-        previousBlockHash = root.get("previous_block_hash").asText();
 
         JsonNode stateNode = root.get("state");
         if (stateNode == null || !stateNode.isObject()) {
@@ -209,6 +229,7 @@ public class BlockchainState {
             state.insertAccount(account);
         }
         state.setBlockId(id + 1);
+        state.setPreviousBlockHash(Util.hexStringToByteArray(root.get("block_hash").asText()));
 
         // debug
         System.out.println(state.toString());
@@ -279,6 +300,8 @@ public class BlockchainState {
 
         // Create and Save Genesis Block
         Block genesisBlock = new Block();
+        genesisBlock.setPreviousBlockHash(new byte[0]);
+        genesisBlock.hash();
         genesisState.save(genesisBlock);
     }
 
