@@ -9,7 +9,6 @@ import group13.depchain.blockchain.Block;
 import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 import group13.depchain.consensus.ByzantineConsensus;
-import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.network.AuthenticatedPerfectLink;
 import group13.depchain.util.ProcessAddress;
@@ -49,22 +48,22 @@ public class BlockchainMember extends Thread {
 
             Block proposed = null;
             AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, id, Ks, map);
+            ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             while (this.running.get()) {
                 System.out.println("[BlockchainMember] Starting BFT.");
-                ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0,
-                        new EpochState(), KP, KUs, al);
-
                 if (this.id == 0 && proposed == null) {
                     proposed = new Block(false);
 
                     long timeout = 30_000;
                     long startTimeOut = System.currentTimeMillis();
                     long deadline = startTimeOut + timeout;
-                    while ((!proposed.full() && System.currentTimeMillis() < deadline) || proposed.empty()) {
+                    while ((!proposed.full() && System.currentTimeMillis() < deadline)
+                            || proposed.empty()) {
                         long remainingTime = deadline - System.currentTimeMillis();
                         if (this.pending.length() == 0) {
                             synchronized (this.pending.cond) {
-                                System.out.println("[BlockchainMember] Remaining time: " + remainingTime);
+                                System.out.println(
+                                        "[BlockchainMember] Remaining time: " + remainingTime);
                                 if (remainingTime > 0)
                                     this.pending.waitChangeTimeout(remainingTime);
                                 else

@@ -20,7 +20,8 @@ message Message {
   MessageCode code = 1;
   int32 sender     = 2;
   int32 seq        = 3;
-  bytes message    = 4;
+  int32 ets        = 4;
+  bytes message    = 5;
 }
 
 message TransactionMessage {

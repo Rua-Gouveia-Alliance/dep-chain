@@ -8,66 +8,75 @@ import group13.depchain.network.ConditionalCollect;
 import group13.depchain.network.OutputPredicate;
 import group13.depchain.Messages.*;
 import group13.depchain.blockchain.Block;
-
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.ArrayList;
 import java.util.List;
 
 public class ByzantineConsensus {
 
     private AuthenticatedPerfectLink al;
-    private ConditionalCollect cc;
+    private ArrayList<ConditionalCollect> cc;
     private EpochState epochstate;
-    private Block[] written;
-    private Block[] accepted;
-    private Block decided;
-    private final int N;
+    private ArrayList<Block[]> written;
+    private ArrayList<Block[]> accepted;
+    private ArrayList<Block> decided;
+    private int N;
+    private int ets;
     private final int f;
-    private final int ets;
     private final int id;
     private final int leaderId;
-    private final Boolean[] abort;
+    private final PrivateKey KR;
+    private final PublicKey[] KUs;
+    private final ArrayList<Boolean[]> abort;
 
-    public ByzantineConsensus(int id, int leaderId, int N, int ets, EpochState prevstate,
-            PrivateKey privateKey, PublicKey[] publicKeys, AuthenticatedPerfectLink al)
-            throws SocketException {
-        this.epochstate = prevstate;
-        this.written = new Block[N];
-        this.accepted = new Block[N];
-        this.decided = new Block();
+    OutputPredicate sound = (messages) -> {
+        EpochState[] S = new EpochState[this.N];
+        for (int i = 0; i < this.N; ++i) {
+            try {
+                S[i] = new EpochState(StateMessage.parseFrom(messages.get(i).getMessage()));
+            } catch (InvalidProtocolBufferException e) {
+                S[i] = new EpochState(-1);
+            }
+        }
+
+        if (this.unbound(S))
+            return true;
+
+        for (EpochState s : S) {
+            if (this.binds(s.getValts(), s.getVal(), S))
+                return true;
+        }
+
+        return false;
+    };
+
+    public ByzantineConsensus(int id, int leaderId, int N, int ets, PrivateKey privateKey,
+            PublicKey[] publicKeys, AuthenticatedPerfectLink al) throws SocketException {
         this.N = N;
         this.f = (N - 1) / 3;
         this.ets = ets;
         this.id = id;
         this.leaderId = leaderId;
-        this.abort = new Boolean[N];
+        this.KR = privateKey;
+        this.KUs = publicKeys;
 
-        OutputPredicate sound = (messages) -> {
-            EpochState[] S = new EpochState[this.N];
-            for (int i = 0; i < this.N; ++i) {
-                try {
-                    S[i] = new EpochState(StateMessage.parseFrom(messages.get(i).getMessage()));
-                } catch (InvalidProtocolBufferException e) {
-                    S[i] = new EpochState(-1);
-                }
-            }
+        this.epochstate = new EpochState();
+        this.abort = new ArrayList<>();
+        this.written = new ArrayList<>();
+        this.accepted = new ArrayList<>();
+        this.decided = new ArrayList<>();
+        this.cc = new ArrayList<>();
 
-            if (this.unbound(S))
-                return true;
-
-            for (EpochState s : S) {
-                if (this.binds(s.getValts(), s.getVal(), S))
-                    return true;
-            }
-
-            return false;
-        };
+        this.abort.add(new Boolean[N]);
+        this.written.add(new Block[N]);
+        this.accepted.add(new Block[N]);
+        this.decided.add(new Block());
 
         this.al = al;
-        this.cc = new ConditionalCollect(privateKey, publicKeys, sound, N, id, leaderId, al);
-
-        this.clear(this.written);
-        this.clear(this.accepted);
+        this.clear(this.written.get(0));
+        this.clear(this.accepted.get(0));
+        this.cc.add(new ConditionalCollect(privateKey, publicKeys, sound, N, id, leaderId, al));
     }
 
     private void clear(Block[] array) {
@@ -158,11 +167,11 @@ public class ByzantineConsensus {
         assert this.id == 0 : "The processs proposing is not leader";
         System.out.println("[ByzantineConsensus] Proposing: " + val);
 
-        if (this.epochstate.getVal().isNullBlock())
-            this.epochstate.setVal(val);
+        this.epochstate.setVal(val);
+        this.epochstate.setValts(0);
 
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.READ)
-                .setMessage(ByteString.copyFrom(new byte[0]));
+                .setMessage(ByteString.copyFrom(new byte[0])).setEts(this.ets);
         for (int i = 0; i < this.N; ++i)
             this.al.send(i, builder);
 
@@ -170,7 +179,7 @@ public class ByzantineConsensus {
 
     private boolean deliverREAD(Message received) throws Exception {
         MessageCode code = received.getCode();
-        int senderId = received.getSender();
+        int senderId = received.getSender(), ets = received.getEts();
         if (code != MessageCode.READ || senderId != leaderId)
             return false;
 
@@ -185,24 +194,24 @@ public class ByzantineConsensus {
 
         StateMessage stateMessage = stateMessageBuilder.build();
         Message packet = Message.newBuilder().setCode(MessageCode.STATE)
-                .setMessage(stateMessage.toByteString()).build();
-        this.cc.send(this.leaderId, packet);
+                .setMessage(stateMessage.toByteString()).setEts(ets).build();
+        this.cc.get(ets).send(this.leaderId, packet);
         return true;
     }
 
     private void deliverCOLLECTED(Message received) throws Exception {
-        // Already collected, ignore
-        if (this.cc.getCollected())
+        // Already collected or refers to an older epoch, ignore
+        if (this.cc.get(this.ets).getCollected() || this.ets != received.getEts())
             return;
 
-        this.cc.deliverCOLLECTED(received);
-        if (!this.cc.getCollected())
+        this.cc.get(this.ets).deliverCOLLECTED(received);
+        if (!this.cc.get(this.ets).getCollected())
             return;
 
         System.out.println("[ByzantineConsensus] Delivered COLLECTED");
 
         EpochState[] states = new EpochState[this.N];
-        List<Message> messages = this.cc.getMessages();
+        List<Message> messages = this.cc.get(this.ets).getMessages();
         for (int i = 0; i < this.N; ++i) {
             Message m = messages.get(i);
             if (m == null || m.getCode() != MessageCode.STATE) {
@@ -236,74 +245,78 @@ public class ByzantineConsensus {
             this.epochstate.addVal(tmpval);
 
             Message.Builder builder = Message.newBuilder().setCode(MessageCode.WRITE)
-                    .setMessage(tmpval.toBlockMessage().toByteString());
+                    .setEts(this.ets).setMessage(tmpval.toBlockMessage().toByteString());
             for (int i = 0; i < this.N; ++i)
                 al.send(i, builder);
         } else {
             Message.Builder builder = Message.newBuilder().setCode(MessageCode.ABORT)
-                    .setMessage(ByteString.copyFrom(new byte[0]));
+                    .setEts(this.ets).setMessage(ByteString.copyFrom(new byte[0]));
             for (int i = 0; i < this.N; ++i)
                 al.send(i, builder);
-            this.abort[this.id] = true;
+            this.abort.get(this.ets)[this.id] = true;
         }
     }
 
     private void deliverACCEPT(Message received) throws Exception {
-        if (received.getCode() != MessageCode.ACCEPT)
+        // We don't care about accepts that refer to older epochs
+        if (received.getCode() != MessageCode.ACCEPT || this.ets != received.getEts())
             return;
 
         System.out.println("[ByzantineConsensus] Delivered ACCEPT");
 
         int p = received.getSender();
-        this.accepted[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
+        this.accepted.get(this.ets)[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
 
-        Block val = getMajorityVal(this.accepted);
+        Block val = getMajorityVal(this.accepted.get(this.ets));
         if (val.isNullBlock())
             return;
 
-        this.clear(this.accepted);
-        this.decided = val;
+        this.clear(this.accepted.get(this.ets));
+        this.decided.set(this.ets, val);
     }
 
     private void deliverWRITE(Message received) throws Exception {
-        if (received.getCode() != MessageCode.WRITE)
+        // We don't care about writes that refer to older epochs
+        if (received.getCode() != MessageCode.WRITE || this.ets != received.getEts())
             return;
 
         System.out.println("[ByzantineConsensus] Delivered WRITE");
 
         int p = received.getSender();
-        this.written[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
+        this.written.get(this.ets)[p] = new Block(BlockMessage.parseFrom(received.getMessage()));
 
-        Block val = getMajorityVal(this.written);
+        Block val = getMajorityVal(this.written.get(this.ets));
         if (val.isNullBlock())
             return;
 
         this.epochstate.setValts(this.ets);
         this.epochstate.setVal(val);
-        this.clear(this.written);
+        this.clear(this.written.get(this.ets));
 
-        Message.Builder builder = Message.newBuilder().setCode(MessageCode.ACCEPT)
+        Message.Builder builder = Message.newBuilder().setCode(MessageCode.ACCEPT).setEts(this.ets)
                 .setMessage(val.toBlockMessage().toByteString());
         for (int i = 0; i < this.N; ++i)
             al.send(i, builder);
     }
 
     private void deliverABORT(Message received) throws Exception {
-        if (received.getCode() != MessageCode.ABORT)
+        // We don't care about aborts that refer to older epochs
+        if (received.getCode() != MessageCode.ABORT || this.ets != received.getEts())
             return;
 
         System.out.println("[ByzantineConsensus] Delivered ABORT");
 
-        this.abort[received.getSender()] = true;
+        this.abort.get(this.ets)[received.getSender()] = true;
         int abortVotes = 0;
-        for (Boolean v : this.abort) {
-            if (v)
+        for (Boolean v : this.abort.get(this.ets)) {
+            if (v) {
                 ++abortVotes;
+            }
         }
 
         // At least one correct process sent us ABORT
         if (abortVotes > this.f)
-            this.decided = new Block(true);
+            this.decided.set(this.ets, new Block(true));
     }
 
     public void deliver() throws Exception {
@@ -313,7 +326,7 @@ public class ByzantineConsensus {
 
         MessageCode code = received.getCode();
         if (code == MessageCode.DSMESSAGE) {
-            this.cc.deliverDS(received);
+            this.cc.get(ets).deliverDS(received);
         } else if (code == MessageCode.COLLECTED) {
             this.deliverCOLLECTED(received);
         } else if (code == MessageCode.ACCEPT) {
@@ -333,9 +346,19 @@ public class ByzantineConsensus {
         if (this.id == this.leaderId)
             leaderPropose(val);
 
-        while (this.decided.isNullBlock())
+        while (this.decided.get(this.ets).isNullBlock())
             this.deliver();
 
-        return this.decided;
+        this.abort.add(new Boolean[N]);
+        this.decided.add(new Block());
+        this.cc.add(new ConditionalCollect(KR, KUs, sound, N, id, leaderId, al));
+
+        this.written.add(new Block[N]);
+        this.accepted.add(new Block[N]);
+        this.clear(this.written.get(this.ets + 1));
+        this.clear(this.accepted.get(this.ets + 1));
+
+        this.epochstate.reset();
+        return this.decided.get(this.ets++);
     }
 }

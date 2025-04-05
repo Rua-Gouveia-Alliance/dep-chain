@@ -58,7 +58,7 @@ public class ConditionalCollect {
             this.messages.add(Message.newBuilder().setCode(MessageCode.NULL).build());
     }
 
-    private synchronized void sendCollected() throws Exception {
+    private synchronized void sendCollected(int ets) throws Exception {
         CollectedMessage.Builder colMessageBuilder = CollectedMessage.newBuilder();
         for (int i = 0; i < this.N; ++i) {
             colMessageBuilder.addMessages(this.messages.get(i))
@@ -68,24 +68,26 @@ public class ConditionalCollect {
         System.out.println("[ConditionalCollect] Sending COLLECTED");
         CollectedMessage colMessage = colMessageBuilder.build();
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.COLLECTED)
-                .setMessage(colMessage.toByteString());
-        for (int i = 0; i < this.N; ++i)
+                .setMessage(colMessage.toByteString()).setEts(ets);
+        for (int i = 0; i < this.N; ++i) {
+            System.out.println("[ConditionalCollect] Sending COLLECTED to " + i);
             this.ap2p.send(i, builder);
+        }
     }
 
     public synchronized void send(int process, Message message) throws Exception {
         byte[] ds = Util.ds(message.toByteArray(), this.privateKey);
 
-        if (this.id == process) {
-            this.messages.set(this.id, message);
-            this.sigs[this.id] = ds;
-            return;
-        }
+        // if (this.id == process) {
+        // this.messages.set(this.id, message);
+        // this.sigs[this.id] = ds;
+        // return;
+        // }
 
         DSMessage dsMessage =
                 DSMessage.newBuilder().setMessage(message).setDs(ByteString.copyFrom(ds)).build();
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
-                .setMessage(dsMessage.toByteString());
+                .setMessage(dsMessage.toByteString()).setEts(message.getEts());
         this.ap2p.send(process, builder);
     }
 
@@ -143,7 +145,7 @@ public class ConditionalCollect {
                         @Override
                         public void run() {
                             try {
-                                sendCollected();
+                                sendCollected(received.getEts());
                             } catch (Exception e) {
                                 System.out.println("[sendCollected] Unexpected error. Exiting.");
                                 System.exit(1);
@@ -163,12 +165,5 @@ public class ConditionalCollect {
 
     public synchronized boolean getCollected() {
         return this.collected;
-    }
-
-    public synchronized void reset() {
-        this.collected = false;
-        this.sigs = new byte[1024][N];
-        for (int i = 0; i < N; i++)
-            this.messages.set(i, Message.newBuilder().setCode(MessageCode.NULL).build());
     }
 }

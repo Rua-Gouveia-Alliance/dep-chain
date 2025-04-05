@@ -49,16 +49,28 @@ public class EpochState {
     }
 
     public void tryRemoveVal(Block val) {
+        WSEntry toRemove = null;
         for (WSEntry e : this.writeset) {
             if (val.eq(e.getVal())) {
-                this.writeset.remove(e);
+                toRemove = e;
+                break;
             }
         }
+
+        if (toRemove != null)
+            this.writeset.remove(toRemove);
     }
 
     public void addVal(Block val) {
-        WSEntry entry = WSEntry.newBuilder().setValts(this.valts).setVal(val.toBlockMessage()).build();
+        WSEntry entry =
+                WSEntry.newBuilder().setValts(this.valts).setVal(val.toBlockMessage()).build();
         this.writeset.add(entry);
+    }
+
+    public void reset() {
+        this.valts = 0;
+        this.val = new Block();
+        this.writeset = new ArrayList<WSEntry>();
     }
 
     @Override
