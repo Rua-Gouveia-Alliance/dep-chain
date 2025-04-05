@@ -55,7 +55,7 @@ public class BlockchainMember extends Thread {
                         new EpochState(), KP, KUs, al);
 
                 if (this.id == 0 && proposed == null) {
-                    proposed = new Block();
+                    proposed = new Block(false);
 
                     long timeout = 10_000;
                     long startTimeOut = System.currentTimeMillis();
