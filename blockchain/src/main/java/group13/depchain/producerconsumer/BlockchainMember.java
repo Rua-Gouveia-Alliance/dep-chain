@@ -61,7 +61,7 @@ public class BlockchainMember extends Thread {
                     long startTimeOut = System.currentTimeMillis();
                     long deadline = startTimeOut + timeout;
                     while ((!proposed.full() && System.currentTimeMillis() < deadline) || proposed.empty()) {
-                        while (this.pending.length() == 0 && proposed.empty()) {
+                        while (this.pending.length() == 0) {
                             synchronized (this.pending.cond) {
                                 long startTimeIn = System.currentTimeMillis();
                                 long remainingTime = timeout - (System.currentTimeMillis() - startTimeIn);
@@ -71,7 +71,7 @@ public class BlockchainMember extends Thread {
                                 this.pending.waitChangeTimeout(remainingTime);
                             }
                         }
-                        if (pending.length() != 0)
+                        while (pending.length() != 0)
                             proposed.append(this.pending.pop());
 
                     }
