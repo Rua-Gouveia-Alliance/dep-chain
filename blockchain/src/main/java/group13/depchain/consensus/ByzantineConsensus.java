@@ -11,6 +11,7 @@ import group13.depchain.blockchain.Block;
 
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.List;
 
 public class ByzantineConsensus {
 
