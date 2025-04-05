@@ -1,6 +1,9 @@
 package group13.depchain;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.List;
@@ -11,6 +14,8 @@ import org.apache.commons.lang3.StringUtils;
 import group13.depchain.Client.*;
 
 public class App {
+
+    private static String IST_COIN_ADDRESS = "0x4321dcbA4321daed1234dcba1234000000001ced";
     public static void main(String args[]) throws IOException {
 
         if (args.length < 1) {
@@ -91,8 +96,16 @@ public class App {
 
     private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner)
             throws IOException {
+
+        System.out.print("Enter account address to check: ");
+        String addr = scanner.next();
+        if (addr.startsWith("0x"))
+            addr = addr.substring(2);
+
         String functionSignature = "0x70a08231"; // balanceOf(address)
-        Request request = client.createTransaction(false, client.getAddress(), 0, functionSignature);
+        String hexAddr = StringUtils.leftPad(addr, 64, "0");
+        String payload = functionSignature + hexAddr;
+        Request request = client.createTransaction(false, IST_COIN_ADDRESS, 0, payload);
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
@@ -105,16 +118,18 @@ public class App {
             throws IOException {
         System.out.print("Enter recipient account address: ");
         String to = scanner.next();
+        if (to.startsWith("0x"))
+            to = to.substring(2);
+
         System.out.print("Enter amount to transfer: ");
         long amount = scanner.nextLong();
 
-        // String hexTo = StringUtils.leftPad(Hex.toHexString(to.getBytes()), 64, "0");
+        String hexTo = StringUtils.leftPad(to, 64, "0");
         String hexAmount = StringUtils.leftPad(Long.toHexString(amount), 64, "0");
-        System.out.println(hexAmount);
         String functionSignature = "0xa9059cbb"; // transfer(address,uint256)
-        String payload = functionSignature + StringUtils.leftPad(to, 64, "0") + hexAmount;
-        System.out.println(payload);
-        Request request = client.createTransaction(false, to, 0, payload);
+        String payload = functionSignature + hexTo + hexAmount;
+
+        Request request = client.createTransaction(false, IST_COIN_ADDRESS, 0, payload);
         client.sendTransaction(request);
 
         List<String> status = client.receiveStatus();
