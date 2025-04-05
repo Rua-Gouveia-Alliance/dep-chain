@@ -12,7 +12,7 @@ public class EOAAccount extends BlockchainAccount {
         this.nonce = nonce;
     }
 
-    private boolean validateNonce(long n) {
+    public boolean validateNonce(long n) {
         if (this.nonce < n) {
             this.nonce = n;
             return true;
@@ -26,11 +26,6 @@ public class EOAAccount extends BlockchainAccount {
 
     @Override
     public boolean executeTransaction(BlockchainState state, Transaction transaction) {
-        if (transaction.getFrom().equals(this.address) && !validateNonce(transaction.getNonce())) {
-            transaction.setReturnData("Nonce is not valid.");
-            return false;
-        }
-
         if (transaction.getFrom().equals(this.address)) {
             if (!withdraw(transaction.getAmount())) {
                 transaction.setReturnData("Invalid amount.");

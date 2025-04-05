@@ -57,9 +57,6 @@ public class ContractAccount extends BlockchainAccount {
                 return false;
             }
             return true;
-        } else if (transaction.isTransfer() && transaction.getFrom().equals(this.address)) {
-            System.out.println("[executeTransaction] Cannot withdraw from contract account.");
-            return false;
         }
 
         // contract execution
