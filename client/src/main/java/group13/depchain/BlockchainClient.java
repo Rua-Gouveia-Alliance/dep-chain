@@ -35,8 +35,8 @@ public class BlockchainClient {
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     }
 
-    public byte[] genSignature(RequestType type, boolean isTransfer, String to, long amount, long nonce,
-            String payload) {
+    public byte[] genSignature(RequestType type, boolean isTransfer, String to, long amount,
+            long nonce, String payload) {
         int type_n = type.getNumber();
         int transfer_type = isTransfer ? 0 : 1;
 
@@ -49,7 +49,8 @@ public class BlockchainClient {
             ecdsaSign.initSign(privateKey);
             ecdsaSign.update(raw);
             return ecdsaSign.sign();
-        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException | SignatureException e) {
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidKeyException
+                | SignatureException e) {
             System.out.println("[genSignature] Unexpected failure. Exiting.");
             System.exit(0);
             return null;
@@ -67,8 +68,8 @@ public class BlockchainClient {
         requestBuilder.setNonce(nonce);
         requestBuilder.setIsTransfer(isTransfer);
         requestBuilder.setPayload(payload);
-        requestBuilder.setSignature(
-                ByteString.copyFrom(genSignature(RequestType.TRANSACTION, isTransfer, to, amount, nonce, payload)));
+        requestBuilder.setSignature(ByteString.copyFrom(
+                genSignature(RequestType.TRANSACTION, isTransfer, to, amount, nonce, payload)));
 
         return requestBuilder.build();
     }
@@ -84,9 +85,8 @@ public class BlockchainClient {
         requestBuilder.setNonce(nonce);
         requestBuilder.setIsTransfer(false);
         requestBuilder.setPayload("");
-        requestBuilder
-                .setSignature(
-                        ByteString.copyFrom(genSignature(RequestType.CHECK_BALANCE, false, address, 0, nonce, "")));
+        requestBuilder.setSignature(ByteString
+                .copyFrom(genSignature(RequestType.CHECK_BALANCE, false, address, 0, nonce, "")));
 
         return requestBuilder.build();
     }
@@ -102,8 +102,8 @@ public class BlockchainClient {
         requestBuilder.setNonce(nonce);
         requestBuilder.setIsTransfer(false);
         requestBuilder.setPayload("");
-        requestBuilder
-                .setSignature(ByteString.copyFrom(genSignature(RequestType.READ_STATE, false, address, 0, nonce, "")));
+        requestBuilder.setSignature(ByteString
+                .copyFrom(genSignature(RequestType.READ_STATE, false, address, 0, nonce, "")));
 
         return requestBuilder.build();
     }
@@ -130,7 +130,6 @@ public class BlockchainClient {
         socket.close();
         in.close();
         out.close();
-        
     }
 
 }
