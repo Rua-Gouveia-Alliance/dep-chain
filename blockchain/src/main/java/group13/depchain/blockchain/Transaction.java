@@ -35,7 +35,7 @@ public class Transaction {
         this.signature = signature;
 
         this.type = type;
-        this.returnData = "Unknown return.";
+        this.returnData = "";
     }
 
     public boolean validateSignature(PublicKey senderPublicKey) throws Exception {

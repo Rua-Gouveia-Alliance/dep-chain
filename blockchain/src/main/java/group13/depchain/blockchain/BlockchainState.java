@@ -61,10 +61,13 @@ public class BlockchainState {
                     insertAccount(to);
                 }
 
-                status = from.executeTransaction(this, tx);
-                status = to.executeTransaction(this, tx);
+                if (from.executeTransaction(this, tx))
+                    status = to.executeTransaction(this, tx);
+                else
+                    status = false;
             } else {
                 BlockchainAccount contract = getAccount(tx.getTo());
+                // TODO verify nonce of sender?
                 if (contract == null || !(contract instanceof ContractAccount)) {
                     tx.setReturnData("Destination account is not a contract.");
                     continue;
@@ -73,10 +76,11 @@ public class BlockchainState {
                 status = contract.executeTransaction(this, tx);
             }
 
+            String saved_return = tx.getReturnData();
             if (status) {
-                tx.setReturnData("Transaction executed successfully. " + tx.getReturnData());
+                tx.setReturnData("Done. " + saved_return);
             } else {
-                tx.setReturnData("Transaction failed. " + tx.getReturnData());
+                tx.setReturnData("Failed. " + saved_return);
             }
         }
 
