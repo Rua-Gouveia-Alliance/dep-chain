@@ -20,6 +20,7 @@ public class BlockchainMember extends Thread {
     private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<Transaction> pending;
     private BlockchainState state;
+    private ByzantineConsensus bep;
 
     public BlockchainMember(int id, BlockchainState state, int N, ConcurrentQueue<Block> decided,
             ConcurrentQueue<Transaction> pending) {
@@ -30,6 +31,16 @@ public class BlockchainMember extends Thread {
         this.state = state;
     }
 
+    public BlockchainMember(int id, BlockchainState state, int N, ConcurrentQueue<Block> decided,
+            ConcurrentQueue<Transaction> pending, ByzantineConsensus bep) {
+        this.id = id;
+        this.N = N;
+        this.decided = decided;
+        this.pending = pending;
+        this.state = state;
+        this.bep = bep;
+    }
+
     public void end() {
         this.running.set(false);
     }
@@ -38,17 +49,20 @@ public class BlockchainMember extends Thread {
     public void run() {
         try {
             System.out.println("[BlockchainMember] Starting blockchain member.");
-            PrivateKey KP = KeyManager.getMemberPrivateKey(this.id, "./keys");
-            PublicKey[] KUs = KeyManager.getMemberPublicKeys(this.N, "./keys");
-            SecretKey[] Ks = KeyManager.getMemberSecretKeys(this.N, this.id, "./keys");
-
             ProcessAddress[] map = new ProcessAddress[N];
             for (int i = 0; i < N; ++i)
                 map[i] = new ProcessAddress("localhost", 5000 + i);
 
             Block proposed = null;
-            AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, id, Ks, map);
-            ByzantineConsensus bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
+            if (this.bep == null) {
+                PrivateKey KP = KeyManager.getMemberPrivateKey(this.id, "./keys");
+                PublicKey[] KUs = KeyManager.getMemberPublicKeys(this.N, "./keys");
+                SecretKey[] Ks = KeyManager.getMemberSecretKeys(this.N, this.id, "./keys");
+                AuthenticatedPerfectLink al =
+                        new AuthenticatedPerfectLink(5000 + this.id, id, Ks, map);
+                this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
+            }
+
             while (this.running.get()) {
                 System.out.println("[BlockchainMember] Starting BFT.");
                 if (this.id == 0 && proposed == null) {
@@ -79,8 +93,8 @@ public class BlockchainMember extends Thread {
                 // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
                 // a chave public do recetor
                 System.out.println("[BlockchainMember] Proposing block: " + proposed);
-                Block decided = bep.run(proposed);
-                if (!this.running.get())
+                Block decided = this.bep.run(proposed);
+                if (!this.running.get() || decided == null)
                     break;
 
                 if (decided.aborted()) {
@@ -99,7 +113,7 @@ public class BlockchainMember extends Thread {
 
                 proposed = null;
             }
-            al.close();
+            this.bep.close();
         } catch (Exception e) {
             System.out.println("[BlockchainMember] Exception: " + e);
             e.printStackTrace();

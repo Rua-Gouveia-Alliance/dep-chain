@@ -387,4 +387,8 @@ public class ByzantineConsensus {
         this.epochstate.reset();
         return this.decided.get(this.ets++);
     }
+
+    public void close() {
+        this.al.close();
+    }
 }

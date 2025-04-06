@@ -20,9 +20,9 @@ import group13.depchain.Client.*;
 
 public class BlockchainClient {
 
-    private final Socket socket;
-    private final PrintWriter out;
-    private final BufferedReader in;
+    private Socket socket;
+    private PrintWriter out;
+    private BufferedReader in;
     private final PrivateKey privateKey;
     private final String address;
 
@@ -33,6 +33,18 @@ public class BlockchainClient {
         this.socket = new Socket("localhost", 6000 + id);
         this.out = new PrintWriter(socket.getOutputStream(), true);
         this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+    }
+
+    public BlockchainClient(int id, PrivateKey privateKey, String address, Boolean openConn)
+            throws Exception {
+        this.privateKey = privateKey;
+        this.address = address;
+
+        if (openConn) {
+            this.socket = new Socket("localhost", 6000 + id);
+            this.out = new PrintWriter(socket.getOutputStream(), true);
+            this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        }
     }
 
     public byte[] genSignature(RequestType type, boolean isTransfer, String to, long amount,
@@ -63,6 +75,23 @@ public class BlockchainClient {
         Request.Builder requestBuilder = Request.newBuilder();
         requestBuilder.setType(RequestType.TRANSACTION);
         requestBuilder.setFrom(address);
+        requestBuilder.setTo(to);
+        requestBuilder.setAmount(amount);
+        requestBuilder.setNonce(nonce);
+        requestBuilder.setIsTransfer(isTransfer);
+        requestBuilder.setPayload(payload);
+        requestBuilder.setSignature(ByteString.copyFrom(
+                genSignature(RequestType.TRANSACTION, isTransfer, to, amount, nonce, payload)));
+
+        return requestBuilder.build();
+    }
+
+    public Request createTransaction(boolean isTransfer, String from, String to, long amount, String payload) {
+        long nonce = System.currentTimeMillis();
+
+        Request.Builder requestBuilder = Request.newBuilder();
+        requestBuilder.setType(RequestType.TRANSACTION);
+        requestBuilder.setFrom(from);
         requestBuilder.setTo(to);
         requestBuilder.setAmount(amount);
         requestBuilder.setNonce(nonce);
