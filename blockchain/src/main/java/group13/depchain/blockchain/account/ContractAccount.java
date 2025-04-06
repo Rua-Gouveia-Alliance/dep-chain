@@ -4,7 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.util.Dictionary;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Hashtable;
+import java.util.Set;
 
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.units.bigints.UInt256;
@@ -22,6 +24,7 @@ import com.google.gson.JsonParser;
 
 import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
+import group13.depchain.crypto.Util;
 
 public class ContractAccount extends BlockchainAccount {
     private String contractCode;
@@ -100,13 +103,14 @@ public class ContractAccount extends BlockchainAccount {
 
         // update storage
         contractAccount = (MutableAccount) world.get(to);
-        this.storage = new Hashtable<>();
-        for (int i = 0; i < 64; i++) {
-            UInt256 key = UInt256.valueOf(i);
-            UInt256 value = contractAccount.getStorageValue(key);
+        Set<String> keys = extractStorageSlots(output);
+        for (String key : keys) {
+            UInt256 key_uint256 = UInt256.fromHexString(key);
+            UInt256 value = contractAccount.getStorageValue(key_uint256);
+            System.out.println("[deploy] Storage key: " + key + " value: " + value.toHexString());
 
             if (!value.equals(UInt256.ZERO)) {
-                this.storage.put(key.toHexString(), value.toHexString());
+                this.storage.put(key, value.toHexString());
             }
         }
 
@@ -148,12 +152,14 @@ public class ContractAccount extends BlockchainAccount {
         this.contractCode = extractReturnData(output);
 
         MutableAccount contractAccount = (MutableAccount) world.get(to);
-        for (int i = 0; i < 64; i++) {
-            UInt256 key = UInt256.valueOf(i);
-            UInt256 value = contractAccount.getStorageValue(key);
+        Set<String> keys = extractStorageSlots(output);
+        for (String key : keys) {
+            UInt256 key_uint256 = UInt256.fromHexString(key);
+            UInt256 value = contractAccount.getStorageValue(key_uint256);
+            System.out.println("[deploy] Storage key: " + key + " value: " + value.toHexString());
 
             if (!value.equals(UInt256.ZERO)) {
-                this.storage.put(key.toHexString(), value.toHexString());
+                this.storage.put(key, value.toHexString());
             }
         }
     }
@@ -176,6 +182,36 @@ public class ContractAccount extends BlockchainAccount {
 
         String returnData = memory.substring(2 + offset * 2, 2 + offset * 2 + size * 2);
         return "0x" + returnData;
+    }
+
+    public static Set<String> extractStorageSlots(ByteArrayOutputStream byteArrayOutputStream) {
+        Set<String> accessedSlots = new HashSet<>();
+        String[] lines = byteArrayOutputStream.toString().split("\\r?\\n");
+
+        for (String line : lines) {
+            line = line.trim();
+            if (!line.startsWith("{"))
+                continue;
+
+            try {
+                JsonObject obj = JsonParser.parseString(line).getAsJsonObject();
+                String op = obj.get("opName").getAsString(); // e.g. "SLOAD", "SSTORE"
+                JsonArray stack = obj.getAsJsonArray("stack");
+
+                if ("SLOAD".equals(op) && stack.size() >= 1) {
+                    String slot = stack.get(stack.size() - 1).getAsString();
+                    accessedSlots.add(Util.addPaddingToHexString(slot.toLowerCase()));
+                } else if ("SSTORE".equals(op) && stack.size() >= 2) {
+                    String slot = stack.get(stack.size() - 1).getAsString(); // [value, slot]
+                    accessedSlots.add(Util.addPaddingToHexString(slot.toLowerCase()));
+                }
+            } catch (Exception e) {
+                // Ignore malformed or irrelevant lines
+                continue;
+            }
+        }
+
+        return accessedSlots;
     }
 
     @Override
