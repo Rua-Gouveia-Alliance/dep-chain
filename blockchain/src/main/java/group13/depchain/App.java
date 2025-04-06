@@ -29,7 +29,7 @@ public class App {
 
         if (!Files.exists(Paths.get("./blockchain/states"))) {
             Files.createDirectories(Paths.get("./blockchain/states"));
-            BlockchainState.createGenesisBlock();
+            BlockchainState.createGenesisBlock("./blockchain/states");
         }
     }
 
