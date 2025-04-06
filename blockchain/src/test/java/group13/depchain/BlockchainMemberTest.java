@@ -115,7 +115,8 @@ class BlockchainMemberTest {
         invalidBlock.append(noFundsTx);
 
         // Test 3: Transaction with enough funds
-        Transaction validTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000, nonce++);
+        Transaction validTx =
+                generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000, nonce++);
         invalidBlock.append(validTx);
 
         queue.add(invalidBlock);
@@ -202,38 +203,5 @@ class BlockchainMemberTest {
         assertEquals(Util.addPaddingToHexString("0x01"),
                 processedTxs.get(invalidAmounts.length).getReturnData().substring(6),
                 "Valid transaction should succeed");
-    }
-
-    // @Test
-    void testReentrancyProtection() throws Exception {
-        int id = 0, N = 6;
-        Queue<Block> queue = new LinkedList<>();
-
-        // Malicious contract call that would trigger reentrancy
-        String reentrantPayload = "0x" +
-        // Function selector for malicious contract
-                "deadbeef" +
-                // Target address
-                Util.addPaddingToHexString(addr_0) +
-                // Amount
-                Util.addPaddingToHexString("100");
-
-        Transaction tx = new Transaction(RequestType.TRANSACTION, addr_0, "0xcontractaddress", // Malicious
-                                                                                               // contract
-                0, 0, true, // delegate call
-                reentrantPayload, genSignature(0, RequestType.TRANSACTION, false, addr_0, addr_1, 0,
-                        0, reentrantPayload));
-
-        Block block = new Block();
-        block.append(tx);
-
-        queue.add(block);
-        queue.add(null);
-
-        BlockchainState result = testMember(queue, id, N);
-        Transaction processedTx = result.getLatestBlock().getTransactions().get(0);
-
-        assertEquals("Reentrancy attack detected", processedTx.getReturnData(),
-                "Should detect and prevent reentrancy attacks");
     }
 }
