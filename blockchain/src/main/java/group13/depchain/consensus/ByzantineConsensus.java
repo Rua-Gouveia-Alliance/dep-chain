@@ -171,7 +171,7 @@ public class ByzantineConsensus {
         System.out.println("[ByzantineConsensus] Proposing: " + val);
 
         this.epochstate.setVal(val);
-        this.epochstate.setValts(this.ets);
+        this.epochstate.setValts(0);
 
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.READ)
                 .setMessage(ByteString.copyFrom(new byte[0])).setEts(this.ets);
@@ -384,6 +384,7 @@ public class ByzantineConsensus {
         for (int i = 0; i < N; ++i)
             this.abort.get(this.ets + 1)[i] = false;
 
+        this.epochstate.reset();
         return this.decided.get(this.ets++);
     }
 
