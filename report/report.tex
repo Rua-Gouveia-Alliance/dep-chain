@@ -102,7 +102,7 @@ All messages between clients and blockchain members, as well as between the bloc
 DepChain uses Hyperledger Besu as an embedded Ethereum Virtual Machine (EVM) for executing smart contracts. Contracts are compiled from Solidity and deployed at genesis. The execution environment includes:
 
 \begin{itemize}
-    \item A custom \texttt{SimpleWorld} state provider to simulate the world state.
+    \item A Besu's \texttt{SimpleWorld} instance to simulate the world state.
     \item Storage tracking using the EVM tracer output to identify which storage slots were accessed.
     \item Return value extraction to communicate smart contract responses back to the client.
 \end{itemize}
