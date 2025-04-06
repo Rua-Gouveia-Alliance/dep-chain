@@ -28,7 +28,6 @@ import group13.depchain.producerconsumer.ConcurrentQueue;
 
 class BlockchainMemberTest {
 
-    private int nonce = 0;
     private String IST_COIN_ADDRESS = "0x4321dcbA4321daed1234dcba1234000000001ced";
     private String addr_0 = "0x3a89a0f8dfaef2cad42e124049ee152bb01edc85";
     private String addr_1 = "0xb47dc6ee9aba1b31dbe92933fe5a38f4df15b8d8";
@@ -66,15 +65,15 @@ class BlockchainMemberTest {
         return ecdsaSign.sign();
     }
 
-    Transaction generateISTCoinTransfer(int i, String from, String to, long amount)
+    Transaction generateISTCoinTransfer(int i, String from, String to, long amount, int nonce)
             throws Exception {
         String hexTo = Util.addPaddingToHexString(to);
         String hexAmount = Util.addPaddingToHexString(Long.toHexString(amount));
         String functionSignature = "0xa9059cbb"; // transfer(address,uint256)
         String payload = functionSignature + hexTo.substring(2) + hexAmount.substring(2);
-        byte[] sig = genSignature(i, RequestType.TRANSACTION, false, from, to, amount, this.nonce,
+        byte[] sig = genSignature(i, RequestType.TRANSACTION, false, from, to, amount, nonce,
                 payload);
-        return new Transaction(RequestType.TRANSACTION, from, IST_COIN_ADDRESS, 0, this.nonce++,
+        return new Transaction(RequestType.TRANSACTION, from, IST_COIN_ADDRESS, 0, nonce,
                 false, payload, sig);
     }
 
@@ -96,6 +95,7 @@ class BlockchainMemberTest {
     @Test
     void testInvalidTransaction() throws Exception {
         int id = 1, N = 6;
+        int nonce = 0;
 
         Queue<Block> queue = new LinkedList<>();
 
@@ -104,17 +104,19 @@ class BlockchainMemberTest {
 
         // Test 1: Transaction with invalid nonce
         byte[] sig = genSignature(0, RequestType.TRANSACTION, false, this.addr_0, this.addr_1, 0,
-                this.nonce++, totaSupplyFuncSelector);
+                nonce, totaSupplyFuncSelector);
         Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, this.addr_0,
                 IST_COIN_ADDRESS, 0, -1, false, totaSupplyFuncSelector, sig);
         invalidBlock.append(invalidNonceTx);
 
         // Test 2: Transaction with insufficient funds
-        Transaction noFundsTx = generateISTCoinTransfer(id, this.addr_1, this.addr_0, 1000000);
+        Transaction noFundsTx = generateISTCoinTransfer(id, this.addr_1, this.addr_0, 1000000, nonce);
+        nonce++;
         invalidBlock.append(noFundsTx);
 
         // Test 2: Transaction with enough funds
-        Transaction validTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000);
+        Transaction validTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000, nonce);
+        nonce++;
         invalidBlock.append(validTx);
 
         queue.add(invalidBlock);
@@ -139,15 +141,164 @@ class BlockchainMemberTest {
                 "Return data does not match for the third transaction.");
     }
 
-    /*
-     * TODO: delete?
-     *
-     * @Test void testInvalidTransaction() throws Exception { int id = 1, N = 6;
-     *
-     * Queue<Block> queue = new LinkedList<>();
-     *
-     * BlockchainState result = testMember(queue, id, N); //
-     * assertNotEquals(proposed.getBlockHashHex(), result.getBlockHashHex(), //
-     * "Proposed block and result block do not match."); }
-     */
+    @Test
+    void testDoubleSpending() throws Exception {
+        int id = 0, N = 6, nonce = 0;
+        Queue<Block> queue = new LinkedList<>();
+        
+        // Create two transactions spending from same address with same nonce
+        String sender = this.addr_0;
+        String receiver1 = this.addr_1;
+        String receiver2 = "0x742d35Cc6634C0532925a3b844Bc454e4438f44e"; // Another valid address
+        Block block = new Block();
+
+        // Test 1: Transaction with invalid nonce
+        byte[] sig = genSignature(0, RequestType.TRANSACTION, false, this.addr_0, this.addr_1, 0,
+                nonce, totaSupplyFuncSelector);
+        Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, this.addr_0,
+                IST_COIN_ADDRESS, 0, -1, false, totaSupplyFuncSelector, sig);
+        block.append(invalidNonceTx);
+
+        Transaction validTx = generateISTCoinTransfer(id, sender, receiver1, 1000000, nonce);
+        block.append(validTx);
+
+        // Second transaction trying to spend same funds (same sender, same nonce)
+        Transaction tx2 = generateISTCoinTransfer(id, sender, receiver2, 1000000, nonce);
+        block.append(tx2);
+        
+        queue.add(block);
+        queue.add(null);
+        
+        BlockchainState result = testMember(queue, id, N);
+        
+        List<Transaction> processedTxs = result.getLatestBlock().getTransactions();
+        
+        // Verify only one transaction was accepted
+        assertEquals(1, processedTxs.size(), "Should reject double spending");
+        
+        // Verify which transaction was accepted (implementation dependent)
+        if (processedTxs.size() > 0) {            
+            // Verify the other transaction has error status
+            if (processedTxs.get(0).getTo().equals(receiver1)) {
+                assertEquals("Double spending detected", block.getTransactions().get(1).getReturnData());
+            } else {
+                assertEquals("Double spending detected", block.getTransactions().get(0).getReturnData());
+            }
+        }
+    }
+
+    //@Test
+    void testMalformedAddress() throws Exception {
+        int id = 0, N = 6, nonce = 0;
+        Queue<Block> queue = new LinkedList<>();
+        
+        // Test various malformed addresses
+        String[] invalidAddresses = {
+            "0x123",                   // Too short
+            "0xGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGGG", // Invalid hex chars
+            "1234567890abcdef1234567890abcdef12345678",    // Missing 0x
+            "0x742d35Cc6634C0532925a3b844Bc454e4438f44",  // Too short (39 chars)
+            ""                                           // Empty
+        };
+        
+        Block block = new Block();
+        for (String invalidAddr : invalidAddresses) {
+            Transaction tx = generateISTCoinTransfer(id, this.addr_0, invalidAddr, 100, nonce);
+            block.append(tx);
+        }
+        
+        queue.add(block);
+        //queue.add(null);
+        
+        BlockchainState result = testMember(queue, id, N);
+        List<Transaction> processedTxs = result.getLatestBlock().getTransactions();
+        
+        // Verify all transactions were rejected
+        assertEquals(invalidAddresses.length, processedTxs.size(), 
+            "All transactions should be present");
+        
+        for (Transaction tx : processedTxs) {
+            assertEquals("Invalid address format", tx.getReturnData(),
+                "Malformed address should be rejected");
+        }
+    }
+
+    //@Test
+    void testNegativeAmount() throws Exception {
+        int id = 0, N = 6, nonce = 0;
+        Queue<Block> queue = new LinkedList<>();
+        
+        // Test various invalid amounts
+        long[] invalidAmounts = {
+            -100,       // Explicit negative
+            Long.MIN_VALUE, // Minimum possible negative
+            -1          // Boundary case
+        };
+        
+        Block block = new Block();
+        for (long amount : invalidAmounts) {
+            Transaction tx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, amount, nonce);
+            block.append(tx);
+        }
+        
+        // Add one valid transaction for contrast
+        Transaction validTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 100, nonce);
+        block.append(validTx);
+        
+        queue.add(block);
+        queue.add(null);
+        
+        BlockchainState result = testMember(queue, id, N);
+        List<Transaction> processedTxs = result.getLatestBlock().getTransactions();
+        
+        // Verify invalid transactions were rejected
+        for (int i = 0; i < invalidAmounts.length; i++) {
+            assertEquals("Amount must be positive", 
+                processedTxs.get(i).getReturnData(),
+                "Negative amounts should be rejected");
+        }
+        
+        // Verify valid transaction was processed
+        assertEquals(Util.addPaddingToHexString("0x01"),
+            processedTxs.get(invalidAmounts.length).getReturnData().substring(6),
+            "Valid transaction should succeed");
+    }
+
+    //@Test
+    void testReentrancyProtection() throws Exception {
+        int id = 0, N = 6;
+        Queue<Block> queue = new LinkedList<>();
+        
+        // Malicious contract call that would trigger reentrancy
+        String reentrantPayload = "0x" + 
+            // Function selector for malicious contract
+            "deadbeef" + 
+            // Target address
+            Util.addPaddingToHexString(addr_0) +
+            // Amount
+            Util.addPaddingToHexString("100");
+        
+        Transaction tx = new Transaction(
+            RequestType.TRANSACTION,
+            addr_0,
+            "0xcontractaddress", // Malicious contract
+            0,
+            0,
+            true, // delegate call
+            reentrantPayload,
+            genSignature(0, RequestType.TRANSACTION, false, addr_0, addr_1, 0, 0, reentrantPayload)
+        );
+        
+        Block block = new Block();
+        block.append(tx);
+        
+        queue.add(block);
+        queue.add(null);
+        
+        BlockchainState result = testMember(queue, id, N);
+        Transaction processedTx = result.getLatestBlock().getTransactions().get(0);
+        
+        assertEquals("Reentrancy attack detected", processedTx.getReturnData(),
+            "Should detect and prevent reentrancy attacks");
+    }
 }
