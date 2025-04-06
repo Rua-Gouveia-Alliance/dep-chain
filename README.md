@@ -64,9 +64,11 @@ $ mvn -pl blockchain exec:java -Dexec.args="3 5"
 $ mvn -pl blockchain exec:java -Dexec.args="4 5"
 ```
 
-**Note 1**: The first argument represents the ID of the member to be executed, and the second is the total number of members.
+**Note 1**: The first argument represents the ID of the member to be executed, and the second is the total number of clients.
 
-**Note 2**: By default, member with ID 0 is the leader.
+**Note 2**: Please run the members in ascending order, and only start the next when the previous as already started (e.g. only start member 2 when 1 and 0 have already started). This is because the members need to share symmetric keys when they are run, and this is the order we have defined in the code.
+
+**Note 3**: By default, member with ID 0 is the leader.
 
 ### Client
 
@@ -76,9 +78,9 @@ Next, to run the TUI app of the client, also from the root of the project:
 $ mvn -pl client exec:java -Dexec.args="0"
 ```
 
-**Note 3**: Here, the argument is the ID of the client.
+**Note 4**: Here, the argument is the ID of the client.
 
-**Note 4**: Client with ID 0 is the deployer of the IST Coin contract (owner of the blacklist) and starts with a big balance of Dep Coin and IST Coin, so it is particularly useful. You can run other clients with different IDs at the same time in other terminals.
+**Note 5**: Client with ID 0 is the deployer of the IST Coin contract (owner of the blacklist) and starts with a big balance of Dep Coin and IST Coin, so it is particularly useful. You can run other clients with different IDs at the same time in other terminals.
 
 ## Demo
 
@@ -104,4 +106,4 @@ $ mvn -pl client exec:java -Dexec.args="0"
     5. Remove client 1 from the blacklist by going into the contract execution menu and selecting option 4 (with client 0).
     6. Try to make the transfer again (which now should work again) and check the balances.
 
-**Note 5**: After each action, a return value is displayed. In the case of the transfer after blacklisting the client, although the transfer returns `Done...`, what comes next is an error code that is returned by the EVM (because the client is blacklisted). In contrast, when it is successful, the return is `0x1` (true).
+**Note 6**: After each action, a return value is displayed. In the case of the transfer after blacklisting the client, although the transfer returns `Done...`, what comes next is an error code that is returned by the EVM (because the client is blacklisted). In contrast, when it is successful, the return is `0x1` (true).

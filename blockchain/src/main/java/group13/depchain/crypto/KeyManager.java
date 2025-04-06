@@ -63,12 +63,14 @@ public class KeyManager {
             PublicKey senderKey) throws Exception {
         String[] lines = encrypted.split("\n");
         if (lines.length != 2) {
+            System.out.println("[KeyManager] Error: 1");
             return null;
         }
 
         byte[] key = Base64.getDecoder().decode(lines[0]);
         byte[] ds = Base64.getDecoder().decode(lines[1]);
         if (!Util.verifyDS(key, ds, senderKey)) {
+            System.out.println("[KeyManager] Error: 2");
             return null;
         }
 
@@ -78,6 +80,7 @@ public class KeyManager {
         try {
             decryptedKeyBytes = cipher.doFinal(key);
         } catch (IllegalBlockSizeException | BadPaddingException e) {
+            System.out.println("[KeyManager] Error: 3");
             return null;
         }
         return new SecretKeySpec(decryptedKeyBytes, "AES");

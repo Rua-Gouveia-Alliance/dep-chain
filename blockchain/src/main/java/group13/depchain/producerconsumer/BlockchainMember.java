@@ -9,6 +9,8 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.SecretKey;
@@ -68,46 +70,51 @@ public class BlockchainMember extends Thread {
                 SecretKey[] SKs = KeyManager.generateSecretKeys(this.id, this.N);
 
                 // Encrypt SK with each member's KU and send it to each member
+                List<Socket> sockets = new ArrayList<>();
                 for (int i = this.id - 1; i > -1; --i) {
                     String packet = KeyManager.encryptSecretKey(SKs[i], KP, KUs[i]);
-                    try (Socket socket = new Socket("localhost", 11000 + i);
-                            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
-                        out.println(packet);
-                        System.out.println(
-                                "[BlockchainMember] Sent encrypted secret key to process: " + i);
-                    }
+                    Socket socket = new Socket("localhost", 11000 + i);
+                    sockets.add(socket);
+                    PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+                    out.println(packet);
+                    System.out.println(
+                            "[BlockchainMember] Sent encrypted secret key to process: " + i + "; key: " + packet);
                 }
 
-                try (ServerSocket socket = new ServerSocket(11000 + this.id);
-                        Socket clientSocket = socket.accept();
-                        BufferedReader in = new BufferedReader(
-                                new InputStreamReader(clientSocket.getInputStream()))) {
+                ServerSocket socket = new ServerSocket(11000 + this.id);
+                Socket clientSocket = socket.accept();
+                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
-                    int collected = 0;
-                    while (collected < this.N - this.id) {
-                        String key = in.readLine();
-                        if (key == null) {
-                            System.out.println("[BlockchainMember] Received null");
-                            continue;
-                        }
+                int collected = 0;
+                while (collected < this.N - this.id) {
+                    String key = in.readLine();
+                    System.out.println("[BlockchainMember] Received: " + key);
 
-                        for (int i = this.id - 1; i > -1; --i) {
-                            SecretKey k = KeyManager.decryptSecretKey(key, KP, KUs[i]);
-                            if (k != null) {
-                                if (SKs[i] == null) {
-                                    System.out.println(
-                                            "[BlockchainMember] Received key from process: " + i);
-                                    ++collected;
-                                    SKs[i] = k;
-                                }
-                                break;
+                    if (key == null) {
+                        System.out.println("[BlockchainMember] Received null");
+                        System.exit(0);
+                        continue;
+                    }
+
+                    for (int i = this.id - 1; i > -1; --i) {
+                        SecretKey k = KeyManager.decryptSecretKey(key, KP, KUs[i]);
+                        if (k != null) {
+                            if (SKs[i] == null) {
+                                System.out.println(
+                                        "[BlockchainMember] Received key from process: " + i);
+                                ++collected;
+                                SKs[i] = k;
                             }
+                            break;
                         }
                     }
                 }
 
-                AuthenticatedPerfectLink al =
-                        new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
+                socket.close();
+                for (Socket s : sockets)
+                    s.close();
+
+                AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
                 this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             }
 
