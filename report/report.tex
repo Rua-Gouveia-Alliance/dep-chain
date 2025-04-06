@@ -23,15 +23,13 @@
 %
 \title{DepChain: A Simplified Permissioned Blockchain System with High Dependability Guarantees}
 %
-%\titlerunning{Abbreviated paper title}
-% If the paper title is too long for the running head, you can set
-% an abbreviated paper title here
+\titlerunning{DepChain: A Highly Dependable Blockchain System}
 %
 \author{Francisco Fonseca\orcidID{102492} \and
 Gonçalo Rua\orcidID{102604} \and
 João Gouveia\orcidID{102611}}
 %
-\authorrunning{F. Author et al.}
+\authorrunning{F. Fonseca, G. Rua, J. Gouveia}
 % First names are abbreviated in the running head.
 % If there are more than two authors, 'et al.' is used.
 %
@@ -78,6 +76,14 @@ The blockchain state is stored on disk in JSON format, starting from a genesis b
 
 Transactions are grouped into blocks and decided by the consensus protocol. Upon reaching consensus, the decided block is executed sequentially by each blockchain member, ensuring deterministic updates to the global state.
 
+\textbf{Block Proposal Trigger.} The leader is responsible for proposing new blocks for consensus. A new block is proposed under one of the following conditions:
+\begin{enumerate}
+    \item The block reaches its maximum capacity (i.e., a predefined number of transactions).
+    \item A timer expires and there are pending transactions waiting to be proposed.
+\end{enumerate}
+
+If the timer expires but no transactions are available, the leader will propose a block immediately upon receiving the next transaction. This ensures timely block production without requiring empty blocks.
+
 \subsection{Communication and Serialization}
 
 All messages between clients and blockchain members, as well as between the blockchain members themselves, are serialized using Protocol Buffers. Communication is performed using UDP sockets, with custom abstractions built on top to provide reliability and security. These abstractions include:
@@ -121,6 +127,15 @@ In our implementation, consensus is triggered only by the leader. The leader col
 \subsection{Layered Communication Stack}
 
 To support reliable and authenticated message exchange over an unreliable network (UDP), we implemented several communication abstractions that mirror those taught in class:
+
+\textbf{Block Proposal Strategy.} The leader maintains a queue of client transactions and is responsible for batching them into proposed blocks. To ensure timely progression of the blockchain, the leader initiates a proposal when:
+\begin{itemize}
+    \item The number of collected transactions reaches the maximum block size.
+    \item A timeout occurs and at least one transaction is pending.
+\end{itemize}
+
+If the timer expires but no transactions are queued, the next arriving transaction triggers an immediate proposal. This strategy balances system responsiveness and batching efficiency.
+
 
 \begin{itemize}
     \item \textbf{FairLossLinks (FLL)}: A thin wrapper over UDP that provides no guarantees.
@@ -324,6 +339,8 @@ We tested contract functionality using three deployed contracts in the genesis b
     \item \textbf{Counter}: Verified correct persistent state management, storage updates, and return values from read functions.
 \end{itemize}
 
+Prior to deploying the contracts in DepChain, we validated their behavior using the Remix IDE~\cite{ref_remix}, a web-based Solidity development environment. This allowed us to confirm correctness and simplify debugging of contract logic independently from the blockchain engine.
+
 We also confirmed that custom contracts can be deployed and interacted with, demonstrating the system's extensibility beyond the pre-defined project requirements.
 
 \subsection{Multi-Client and Multi-Member Deployment}
@@ -398,6 +415,9 @@ Cachin, C., Guerraoui, R., Rodrigues, L.: Introduction to Reliable and Secure Di
 
 \bibitem{ref_besu}
 Hyperledger Besu - Ethereum Client. https://github.com/hyperledger/besu, last accessed 2025/03/30
+
+\bibitem{ref_remix}
+Ethereum Foundation: Remix IDE - Web-based Solidity Development Environment. https://remix.ethereum.org, last accessed 2025/03/30
 
 \bibitem{ref_erc20}
 Ethereum Foundation: ERC-20 Token Standard. https://ethereum.org/en/developers/docs/standards/tokens/erc-20, last accessed 2025/03/30
