@@ -113,9 +113,9 @@ class ByzantineConsensusTest {
         generateABORT(queue, maj, f, ets);
 
         StateMessage stateMessage =
-                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
+                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(ets).build();
         Message state = Message.newBuilder().setCode(MessageCode.STATE)
-                .setMessage(stateMessage.toByteString()).setEts(0).build();
+                .setMessage(stateMessage.toByteString()).setEts(ets).build();
 
         List<Message> msgs = new ArrayList<>();
         for (int i = 0; i < N; i++)
@@ -177,14 +177,19 @@ class ByzantineConsensusTest {
         generateDSMESSAGE(queue, 0, maj, 1, 0);
     }
 
-    Block testLeader(Queue<Message> queue, int id, int N, Block proposed) throws Exception {
+    ArrayList<Block> testLeader(Queue<Message> queue, int id, int N, Block proposed, int rounds)
+            throws Exception {
         PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
         PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, TEST_KEYS_DIR);
 
         AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
         when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
         ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, KP, KUs, mockAp2p);
-        return bep.run(proposed);
+        ArrayList<Block> results = new ArrayList<>();
+
+        for (int i = 0; i < rounds; ++i)
+            results.add(bep.run(proposed));
+        return results;
     }
 
     @BeforeAll
@@ -199,7 +204,7 @@ class ByzantineConsensusTest {
 
     @Test
     void testHonestMajorityLeader() throws Exception {
-        int id = 0, N = 6;
+        int id = 0, N = 6, rounds = 4;
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
@@ -209,14 +214,16 @@ class ByzantineConsensusTest {
 
         Queue<Message> queue = new LinkedList<>();
 
-        // Simulate 3 epochs
-        for (int i = 0; i < 4; ++i) {
+        // Simulate 4 epochs
+        for (int i = 0; i < rounds; ++i) {
             generateHonestMajorityMessages(queue, id, N, i, proposed);
-            Block result = testLeader(queue, id, N, proposed);
-            assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-                    "Proposed block and result block do not match.");
         }
 
+        ArrayList<Block> results = testLeader(queue, id, N, proposed, rounds);
+        for (int i = 0; i < rounds; ++i) {
+            assertEquals(proposed.getBlockHashHex(), results.get(i).getBlockHashHex(),
+                    "Proposed block and result block do not match on round " + i + ".");
+        }
     }
 
     @Test
@@ -232,8 +239,8 @@ class ByzantineConsensusTest {
         Queue<Message> queue = new LinkedList<>();
         generateReorderedHonestMajorityMessages(queue, id, N, proposed);
 
-        Block result = testLeader(queue, id, N, proposed);
-        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+        ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
+        assertEquals(proposed.getBlockHashHex(), result.get(0).getBlockHashHex(),
                 "Proposed block and result block do not match.");
     }
 
@@ -249,7 +256,7 @@ class ByzantineConsensusTest {
 
         Queue<Message> queue = new LinkedList<>();
         generateFakeDSMajority(queue, id, N);
-        Block result = testLeader(queue, id, N, proposed);
-        assertTrue(result.aborted(), "Epoch was not aborted.");
+        ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
+        assertTrue(result.get(0).aborted(), "Epoch was not aborted.");
     }
 }
