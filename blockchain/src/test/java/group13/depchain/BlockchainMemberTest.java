@@ -3,9 +3,7 @@ package group13.depchain;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
-import group13.depchain.Messages.Message;
 import group13.depchain.blockchain.Block;
 import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
@@ -13,19 +11,17 @@ import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.producerconsumer.BlockchainMember;
 import group13.depchain.producerconsumer.ConcurrentQueue;
-
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import java.util.Queue;
-import java.net.Authenticator.RequestorType;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.util.LinkedList;
-import com.google.protobuf.ByteString;
-import group13.depchain.Client.RequestType;
+import java.util.List;
 
 class BlockchainMemberTest {
 
@@ -72,8 +68,8 @@ class BlockchainMemberTest {
         byte[] sig = genSignature(i, RequestType.TRANSACTION, false, hexFrom, hexTo, amount,
                 this.nonce, payload);
 
-        return new Transaction(RequestType.TRANSACTION, hexFrom, hexTo, 0, this.nonce++, false,
-                payload, sig);
+        return new Transaction(RequestType.TRANSACTION, hexFrom, IST_COIN_ADDRESS, 0, this.nonce++,
+                false, payload, sig);
     }
 
     BlockchainState testMember(Queue<Block> queue, int id, int N) throws Exception {
@@ -95,26 +91,18 @@ class BlockchainMemberTest {
 
         Queue<Block> queue = new LinkedList<>();
 
-        String hexFrom = StringUtils.leftPad(addr_0.substring(2), 64, "0");
-        String hexTo = StringUtils.leftPad(addr_1.substring(2), 64, "0");
-
         // Create a block with an invalid transaction
         Block invalidBlock = new Block();
 
-        // Test 1: Transaction with invalid signature
-        Transaction invalidSigTx = new Transaction(RequestType.TRANSACTION, hexFrom,
-                IST_COIN_ADDRESS, 0, 0, false, totaSupplyFuncSelector, new byte[] {0, 1, 2, 3});
-        invalidBlock.append(invalidSigTx);
-
-        // Test 2: Transaction with invalid nonce
-        byte[] sig = genSignature(0, RequestType.TRANSACTION, false, hexFrom, hexTo, 0, this.nonce,
-                totaSupplyFuncSelector);
+        // Test 1: Transaction with invalid nonce
+        byte[] sig = genSignature(0, RequestType.TRANSACTION, false, this.addr_0, this.addr_1, 0,
+                this.nonce++, totaSupplyFuncSelector);
         Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, addr_0,
                 IST_COIN_ADDRESS, 0, -1, false, totaSupplyFuncSelector, sig);
         invalidBlock.append(invalidNonceTx);
 
-        // Test 3: Transaction with insufficient funds
-        Transaction noFundsTx = generateISTCoinTransfer(id, hexFrom, hexTo, 1000000);
+        // Test 2: Transaction with insufficient funds
+        Transaction noFundsTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000);
         invalidBlock.append(noFundsTx);
 
         queue.add(invalidBlock);
@@ -123,9 +111,15 @@ class BlockchainMemberTest {
         BlockchainState result = testMember(queue, id, N);
         Block latestBlock = result.getLatestBlock();
 
-        // Verify none of the invalid transactions were accepted
-        assertTrue(latestBlock.getTransactions().isEmpty(),
-                "Invalid transactions should not be accepted into the state");
+        assertNotEquals(latestBlock, null, "Latest block does not exist.");
+
+        List<Transaction> transactions = latestBlock.getTransactions();
+        assertEquals(2, transactions.size(), "Block sizes do not match.");
+
+        assertEquals("Invalid nonce.", transactions.get(0).getReturnData(),
+                "Return data does not match for the first transaction.");
+        assertEquals("Failure. Invalid amount.", transactions.get(1).getReturnData(),
+                "Return data does not match for the second transaction.");
     }
 
     /*
