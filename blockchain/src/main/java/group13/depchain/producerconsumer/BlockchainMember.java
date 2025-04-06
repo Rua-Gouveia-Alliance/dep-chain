@@ -2,15 +2,13 @@ package group13.depchain.producerconsumer;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.SecretKey;
@@ -143,8 +141,6 @@ public class BlockchainMember extends Thread {
                     }
                 }
 
-                // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
-                // a chave public do recetor
                 System.out.println("[BlockchainMember] Proposing block: " + proposed);
                 Block decided = this.bep.run(proposed);
                 if (!this.running.get() || decided == null)
