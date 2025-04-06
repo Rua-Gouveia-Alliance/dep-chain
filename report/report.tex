@@ -64,9 +64,11 @@ The DepChain system consists of three major components: (1) the \textit{client l
 
 \subsection{Client Library and Frontend}
 
-The client library exposes a simplified interface for interacting with the blockchain. Clients can submit requests of three types: \texttt{CHECK\_BALANCE}, \texttt{READ\_STATE}, and \texttt{TRANSACTION}. Requests are serialized using Protocol Buffers and sent over UDP to the leader of the blockchain. Each request is signed using the client's private key, and the leader validates the signature and source address before further processing. Nonces are used for \texttt{TRANSACTION} requests to prevent replay attacks, but are not enforced for read-only operations.
+The client library exposes a simplified interface for interacting with the blockchain. Clients can submit requests of three types: \texttt{CHECK\_BALANCE}, \texttt{READ\_STATE}, and \texttt{TRANSACTION}. Requests are serialized using Protocol Buffers and sent over TCP to the leader of the blockchain. Each request is signed using the client's private key, and the leader validates the signature and source address before further processing. Nonces are used for \texttt{TRANSACTION} requests to prevent replay attacks, but are not enforced for read-only operations.
 
-For demonstration and testing, we developed a text-based user interface (TUI) that connects to the client library and enables users to perform various operations, including DepCoin transfers, IST Coin operations, and smart contract execution.
+For demonstration and testing, we developed a text-based user interface (TUI) that connects to the client library and enables users to perform various operations, including DepCoin transfers, IST Coin operations, and custom smart contract execution.
+
+Responses are structured to return requested data (e.g., balances or storage values) or transaction results (e.g., return values from smart contracts). Each transaction’s result is saved as part of the block and returned to the client upon execution.
 
 \subsection{Blockchain Members and State Management}
 
@@ -97,7 +99,7 @@ All messages between clients and blockchain members, as well as between the bloc
 
 \subsection{Execution Engine}
 
-DepChain uses Hyperledger Besu as an embedded Ethereum Virtual Machine (EVM) for executing smart contracts. Contracts are compiled from Solidity and deployed at genesis or during runtime. The execution environment includes:
+DepChain uses Hyperledger Besu as an embedded Ethereum Virtual Machine (EVM) for executing smart contracts. Contracts are compiled from Solidity and deployed at genesis. The execution environment includes:
 
 \begin{itemize}
     \item A custom \texttt{SimpleWorld} state provider to simulate the world state.
@@ -105,11 +107,11 @@ DepChain uses Hyperledger Besu as an embedded Ethereum Virtual Machine (EVM) for
     \item Return value extraction to communicate smart contract responses back to the client.
 \end{itemize}
 
-This design allows DepChain to support the execution of arbitrary smart contracts beyond those required by the project (e.g., IST Coin and Blacklist), and enables users to interact with custom logic deployed on-chain.
+This design allows DepChain to support the execution of arbitrary smart contracts beyond those required by the project (e.g., IST Coin and Blacklist).
 
 \section{Byzantine Fault-Tolerant Consensus}
 
-At the core of DepChain lies a Byzantine consensus protocol based on the Read/Write Epoch Consensus model studied in class. Our implementation follows the version described in Algorithms 5.17 and 5.18 of the course book, with key enhancements to support the repeated agreement on sequences of values, inspired by Multi-Paxos. This allows the system to decide on entire blocks of transactions in a single consensus instance, significantly improving efficiency and throughput.
+At the core of DepChain lies a Byzantine consensus protocol based on the Read/Write Epoch Consensus model studied in class. Our implementation follows the version described in Algorithms 5.17 and 5.18 of the course book, with key enhancements to support the repeated agreement on sequences of values, inspired by Multi-Paxos.
 
 \subsection{Protocol Overview}
 
@@ -124,31 +126,9 @@ The consensus algorithm consists of the following primitives:
 
 In our implementation, consensus is triggered only by the leader. The leader collects client transactions, verifies their validity, and proposes them as a batch (a block) through the consensus algorithm. Once a decision is made, all members execute the block to update their local blockchain state.
 
-\subsection{Layered Communication Stack}
-
-To support reliable and authenticated message exchange over an unreliable network (UDP), we implemented several communication abstractions that mirror those taught in class:
-
-\textbf{Block Proposal Strategy.} The leader maintains a queue of client transactions and is responsible for batching them into proposed blocks. To ensure timely progression of the blockchain, the leader initiates a proposal when:
-\begin{itemize}
-    \item The number of collected transactions reaches the maximum block size.
-    \item A timeout occurs and at least one transaction is pending.
-\end{itemize}
-
-If the timer expires but no transactions are queued, the next arriving transaction triggers an immediate proposal. This strategy balances system responsiveness and batching efficiency.
-
-
-\begin{itemize}
-    \item \textbf{FairLossLinks (FLL)}: A thin wrapper over UDP that provides no guarantees.
-    \item \textbf{StubbornLinks (SL)}: Repeatedly sends messages until a signed acknowledgment is received. We enforce that a valid acknowledgment must be signed to prevent denial-of-service attacks from malicious nodes sending fake ACKs.
-    \item \textbf{AuthenticatedPerfectLinks (APL)}: Built on top of SL to guarantee authenticated and exactly-once delivery of messages. Each message is signed using the sender’s private key and verified using their known public key.
-    \item \textbf{ConditionalCollect (CC)}: Implements a quorum-based collection mechanism to gather messages (e.g., proposals or acknowledgments) under specific conditions, allowing the system to tolerate Byzantine senders.
-\end{itemize}
-
-All messages passed through these layers are encoded using Protocol Buffers to ensure consistent and efficient serialization.
-
 \subsection{Multi-Value Consensus Execution}
 
-To avoid repeated executions of the consensus protocol for each new transaction or block, our implementation allows the leader to propose and decide on a sequence of values at once. This model is similar to Multi-Paxos and results in a single consensus instance deciding the entire block of transactions. This optimization preserves the original algorithm’s safety properties and significantly improves performance in a permissioned blockchain setting.
+Our implementation allows the leader to propose and decide on a sequence of values in the same consensus instance. This model is similar to Multi-Paxos and results in a single instance of consensus deciding the all the blocks. This optimization preserves the original algorithm’s safety properties and improves performance.
 
 The \texttt{Decide} primitive, upon invocation, notifies the upper layer (i.e., the blockchain module) to apply the block and persist the new state. Each member independently executes the block and updates its local JSON-based ledger and world state.
 
@@ -177,29 +157,13 @@ DepChain follows the Ethereum account model, distinguishing between:
 
 Transactions can be of type \texttt{TRANSFER} or smart contract \texttt{EXECUTION}. Each transaction includes fields such as sender/receiver addresses, amount, nonce, payload (e.g., contract calldata), and a digital signature. The leader verifies signatures and ensures message integrity before appending the transaction to a proposed block. Nonce validation is deferred until the execution phase to handle multiple transactions from the same sender within the same block.
 
-\subsection{Genesis Block and State Persistence}
-
-The system starts from a genesis block that initializes:
-\begin{itemize}
-    \item Account addresses and initial balances.
-    \item Deployed smart contracts, including their bytecode and initialized storage.
-\end{itemize}
-
-The genesis block is generated programmatically and persisted as a JSON file. Subsequent blocks are also serialized in JSON and contain a reference to the previous block hash, a list of executed transactions, and the updated world state.
-
-Blocks are applied sequentially by all blockchain members after being decided by the consensus layer. This ensures that each member has a consistent view of the system state.
-
 \subsection{Smart Contract Execution}
 
-Smart contract execution is powered by Hyperledger Besu’s EVM implementation. Contracts are compiled from Solidity and loaded into memory at runtime. To simulate the EVM world state, we use a custom \texttt{SimpleWorld} object and manually initialize accounts and their balances.
+Smart contract execution is powered by Hyperledger Besu’s EVM implementation, as we are using it as a "sandbox". Contracts are compiled from Solidity and loaded into the sandbox at transaction execution time.
 
-A key feature of our implementation is the ability to track and persist only the modified storage keys after contract execution. This is done by capturing the output of Besu’s EVM tracer and extracting accessed storage slots using operations like \texttt{SLOAD} and \texttt{SSTORE}:
-\begin{itemize}
-    \item This improves efficiency and mimics how real Ethereum clients store state diffs.
-    \item Only the touched storage keys are updated in the persistent state, reducing redundancy.
-\end{itemize}
+A key feature of our implementation is the ability to track and persist only the modified storage keys after contract execution. This is done by capturing the output of Besu’s EVM tracer and extracting accessed storage slots using operations \texttt{SLOAD} and \texttt{SSTORE}.
 
-The tracer output is also parsed to extract the return value of the contract call, which is forwarded back to the client. This is essential for usability, especially in contracts that implement access control or return meaningful computation results.
+The tracer output is also parsed to extract the return value of the contract call, which is forwarded back to the client.
 
 \subsection{Smart Contract Deployment}
 
@@ -210,17 +174,7 @@ Although we did not implement a separate transaction type for contract deploymen
     \item Initializing contract storage from tracer output.
 \end{itemize}
 
-This setup allows the seamless deployment of contracts like \texttt{ISTCoin} (an ERC-20 token with 2 decimals and access control) and \texttt{Blacklist} (an address-based access control list). We also included a simple counter contract for testing custom logic.
-
-\subsection{Request and Response Flow}
-
-Requests are sent by clients to the leader in the form of Protocol Buffer messages. These include both transactions and read-only operations:
-\begin{itemize}
-    \item \texttt{TRANSACTION} requests are signed and validated by the leader before being added to a block.
-    \item \texttt{CHECK\_BALANCE} and \texttt{READ\_STATE} are also signed but bypass nonce validation, as they do not modify the blockchain state.
-\end{itemize}
-
-Responses are structured to return requested data (e.g., balances or storage values) or transaction results (e.g., return values from smart contracts). Each transaction’s result is saved as part of the block and returned to the client upon execution.
+This setup allows the seamless deployment of contracts, making the future implementation of contract deployment transactions straightforward.
 
 \section{Security and Dependability Guarantees}
 
@@ -250,45 +204,32 @@ This prevents unauthorized message injection and guarantees non-repudiation.
 
 Stubborn Links require that acknowledgments are signed, which protects against a specific class of denial-of-service attacks. Without this, a malicious node could flood the system with fake ACKs and halt retransmission prematurely. By validating ACK signatures, we ensure that only legitimate acknowledgments influence the behavior of reliable links.
 
-\subsection{Nonce-Based Replay Protection}
-
-Each EOA account in the system maintains a nonce, used to prevent replay attacks. Nonce validation is deferred until transaction execution (i.e., after the block is decided), allowing multiple transactions from the same client to be batched into a single block:
-\begin{itemize}
-    \item If the nonce in a transaction is greater than the stored nonce, the transaction is accepted and the stored nonce is updated.
-    \item If the nonce is stale (equal or smaller), the transaction is rejected.
-\end{itemize}
-
-This model ensures correctness while maximizing concurrency during consensus.
-
-\subsection{Authorization and Access Control}
-
-The system includes a smart contract-based access control mechanism through a \texttt{Blacklist} contract. Only authorized accounts can modify the blacklist, and the \texttt{ISTCoin} contract queries this list before allowing transfers. This ensures that certain clients can be dynamically prevented from participating in token transactions.
-
 \subsection{Transaction Validation Pipeline}
 
 Before including a transaction in a proposed block, the leader performs:
 \begin{itemize}
     \item \textbf{Signature verification}: Ensures the transaction was signed by the sender’s private key.
-    \item \textbf{Address matching}: Confirms that the “from” field in the transaction matches the public key.
+    \item \textbf{Address matching}: The sender’s address included in the transaction is recomputed by hashing the provided public key, following the same derivation scheme used in Ethereum (i.e., taking the last 20 bytes of the Keccak-256 hash of the public key). This derived address is then matched against the one declared in the transaction’s \texttt{from} field.
     \item \textbf{Structural integrity}: Validates required fields and ensures the payload is well-formed.
 \end{itemize}
 
 Only transactions that pass all validation steps are appended to the block.
 
-\subsection{Client Library Trust Model}
+\subsection{Nonce-Based Replay Protection}
 
-The client library is assumed to be trusted by the application using it, and is responsible for:
+Each EOA account in the system maintains a nonce, used to prevent replay attacks. As stated before, nonce validation is deferred until transaction execution (i.e., after the block is decided), allowing multiple transactions from the same client to be batched into a single block:
 \begin{itemize}
-    \item Generating transaction messages.
-    \item Signing requests using the user’s private key.
-    \item Communicating with the leader using Protocol Buffers over UDP.
+    \item If the nonce in a transaction is greater than the stored nonce, the transaction is accepted and the stored nonce is updated.
+    \item If the nonce is stale (equal or smaller), the transaction is rejected.
 \end{itemize}
 
-This trust model excludes attacks where a compromised library attempts to mislead an honest client, as per the project guidelines.
+\subsection{Client Library Trust Model}
+
+The client library is assumed to be trusted by the application using it. This trust model excludes attacks where a compromised library attempts to mislead an honest client, as per the project guidelines.
 
 \subsection{Resilience to Byzantine Members}
 
-The consensus protocol ensures safety even in the presence of Byzantine blockchain members. Thanks to the use of digital signatures and quorum-based decision making, malicious nodes cannot cause inconsistent state among correct nodes. Liveness is guaranteed under the assumption that the leader is correct and messages are eventually delivered.
+To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation includes unit tests and an interactive terminal-based client for live demonstrations. Further testing details, usage instructions, and walkthroughs are provided in the accompanying README file.
 
 \subsection{Data Integrity and Auditability}
 
@@ -296,107 +237,21 @@ Each block in the chain includes a cryptographic hash of its contents and a refe
 
 \section{Testing and Evaluation}
 
-To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation combines unit tests, integration tests, and an interactive terminal-based client for live demonstrations.
-
-\subsection{Unit Testing and Automated Validation}
-
-We implemented unit tests using JUnit for individual protocol modules and transaction execution logic. These tests validate:
-\begin{itemize}
-    \item Correct behavior of the communication layers: FairLossLinks, StubbornLinks, AuthenticatedPerfectLinks.
-    \item Signature validation and message integrity in all layers.
-    \item Correct quorum collection in ConditionalCollect.
-    \item Execution logic for both EOAs and smart contracts.
-    \item Storage state updates after contract execution using tracer output.
-\end{itemize}
-
-Tests also simulate various Byzantine scenarios, including:
-\begin{itemize}
-    \item Malformed or unsigned messages.
-    \item Duplicate and reordered messages.
-    \item Nodes that respond inconsistently or fail to respond at all.
-\end{itemize}
-
-These tests confirm the system maintains safety guarantees and remains functional when faced with faulty or malicious behavior from up to $f$ members.
-
-\subsection{Interactive Demonstration via TUI}
-
-We developed a terminal-based user interface (TUI) built on top of the client library to facilitate manual testing and demonstrations. The TUI allows users to:
-\begin{itemize}
-    \item View balances for DepCoin and IST Coin.
-    \item Transfer DepCoin between accounts.
-    \item Interact with smart contracts (transfer IST Coin, blacklist addresses, etc.).
-    \item Send custom calldata to arbitrary contract addresses.
-\end{itemize}
-
-This interactive tool proved essential in validating both the expected system behavior and edge cases. The README file included with the project provides a step-by-step guide to running the system and replicating various test scenarios.
-
-\subsection{Smart Contract Testing}
-
-We tested contract functionality using three deployed contracts in the genesis block:
-\begin{itemize}
-    \item \textbf{ISTCoin}: Validated ERC-20 compliant transfers and approval logic, with blacklist enforcement.
-    \item \textbf{Blacklist}: Confirmed access control enforcement and proper blocking of blacklisted addresses.
-    \item \textbf{Counter}: Verified correct persistent state management, storage updates, and return values from read functions.
-\end{itemize}
-
-Prior to deploying the contracts in DepChain, we validated their behavior using the Remix IDE~\cite{ref_remix}, a web-based Solidity development environment. This allowed us to confirm correctness and simplify debugging of contract logic independently from the blockchain engine.
-
-We also confirmed that custom contracts can be deployed and interacted with, demonstrating the system's extensibility beyond the pre-defined project requirements.
-
-\subsection{Multi-Client and Multi-Member Deployment}
-
-We performed tests using multiple terminals to launch five blockchain members and several clients simultaneously. These tests verified:
-\begin{itemize}
-    \item Correct operation under concurrent client requests.
-    \item Proper ordering and batching of transactions into blocks.
-    \item Consistent block decision and execution across all members.
-\    item Recovery and persistence of state using JSON block files.
-\end{itemize}
-
-\subsection{Replay and Duplicate Protection}
-
-We validated nonce-based replay protection by attempting to resend old transactions and observing rejection at execution time. We also confirmed that only fresh transactions with incrementing nonces are accepted.
-
-\subsection{Evaluation Summary}
-
-DepChain passes all correctness tests, both under normal conditions and in the presence of Byzantine faults. Its smart contract system supports generic EVM bytecode execution with fine-grained storage tracking. The interactive TUI provides a powerful tool for live demonstrations, testing, and inspection of contract behavior and account state.
+To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation includes unit tests, and an interactive terminal-based client for live demonstrations. This is better explained in the README file.
 
 \section{Conclusion and Future Work}
 
-In this project, we developed \textbf{DepChain}, a highly dependable permissioned blockchain system that integrates Byzantine consensus, layered secure communication, and a flexible smart contract execution environment. The system was implemented in two stages:
-
-\begin{itemize}
-    \item In \textbf{Stage 1}, we built a Byzantine fault-tolerant consensus protocol based on the Read/Write Epoch model. We developed a layered communication stack over UDP with reliability and security abstractions, and successfully integrated them into a consensus engine that can decide on sequences of values using a Multi-Paxos-like approach.
-    
-    \item In \textbf{Stage 2}, we designed and implemented a blockchain service capable of executing signed transactions, maintaining account balances, and running Solidity smart contracts via Hyperledger Besu. We designed our system to be extensible, with full support for arbitrary smart contracts, dynamic storage inspection, and return value propagation to clients.
-\end{itemize}
+In this project, we developed \textbf{DepChain}, a highly dependable permissioned blockchain system that integrates Byzantine consensus, layered secure communication, and a flexible smart contract execution environment.
 
 Our system enforces strong security guarantees, including message authentication, replay protection, access control enforcement, and state integrity. It is resilient to a wide range of Byzantine behaviors from both clients and servers, and has been thoroughly tested through unit tests and an interactive demo application.
 
 \subsection{Future Work}
 
-While DepChain meets the project goals and offers strong dependability guarantees, there are several directions for future improvement:
-
-\begin{itemize}
-    \item \textbf{Dynamic Membership and Leader Replacement}: Extend the system to support dynamic reconfiguration and Byzantine leader election. This would improve fault recovery and long-term survivability.
-    
-    \item \textbf{Contract Deployment Transactions}: Add native support for deploying contracts at runtime using standard transactions, allowing users to publish new logic post-genesis.
-    
-    \item \textbf{Performance Optimization}: Investigate optimizations such as transaction batching, block pipelining, or delta state compression to enhance throughput and reduce I/O overhead.
-    
-    \item \textbf{Advanced Client Functionality}: Improve the TUI or develop a graphical frontend, including support for transaction history, storage inspection, and contract ABI decoding.
-    
-    \item \textbf{Auditing and Metrics}: Integrate metrics collection and audit logging to analyze system performance and trace behavior over time.
-\end{itemize}
-
-Overall, DepChain provides a strong foundation for building dependable blockchain-based systems in adversarial environments, and demonstrates how classical distributed systems techniques can be effectively combined with modern blockchain technologies.
+While DepChain meets the project goals and offers strong dependability guarantees, there are several directions for future improvement. One natural extension would be to support dynamic membership and Byzantine leader replacement, which would enhance the system's ability to recover from faults and evolve over time. Another potential improvement is the addition of contract deployment through standard transactions, allowing users to publish new smart contracts post-genesis rather than relying on pre-defined deployments. These enhancements would make DepChain more flexible and closer to real-world blockchain platforms.
 
 \begin{credits}
 \subsubsection{\ackname} 
 This work was developed as part of the course \textit{Highly Dependable Systems (SEC-2425)} at Instituto Superior Técnico, under the guidance of Prof. Paolo Romano and Prof. Miguel Matos. We thank the teaching team for the well-designed labs and support materials, including the Hyperledger Besu boilerplate and consensus algorithm references.
-
-\subsubsection{\discintname} 
-The authors have no competing interests to declare that are relevant to the content of this article.
 \end{credits}
 
 
