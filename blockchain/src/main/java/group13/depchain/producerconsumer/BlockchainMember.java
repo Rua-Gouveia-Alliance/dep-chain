@@ -2,15 +2,13 @@ package group13.depchain.producerconsumer;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.SecretKey;
@@ -81,13 +79,15 @@ public class BlockchainMember extends Thread {
                             "[BlockchainMember] Sent encrypted secret key to process: " + i);
                 }
 
-                ServerSocket socket = new ServerSocket(11000 + this.id);
-                Socket clientSocket = socket.accept();
-                BufferedReader in =
-                        new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                ServerSocket socket;
+                Socket clientSocket;
+                BufferedReader in;
 
                 int collected = 0;
                 while (collected < this.N - this.id - 1) {
+                    socket = new ServerSocket(11000 + this.id);
+                    clientSocket = socket.accept();
+                    in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     String key = in.readLine();
                     if (key == null)
                         continue;
@@ -104,14 +104,13 @@ public class BlockchainMember extends Thread {
                             break;
                         }
                     }
+                    socket.close();
                 }
 
-                socket.close();
                 for (Socket s : sockets)
                     s.close();
 
-                AuthenticatedPerfectLink al =
-                        new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
+                AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
                 this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             }
 
@@ -142,8 +141,6 @@ public class BlockchainMember extends Thread {
                     }
                 }
 
-                // TODO: Perguntar ao professor pelas chaves simetricas: gerar rnd e assinar com
-                // a chave public do recetor
                 System.out.println("[BlockchainMember] Proposing block: " + proposed);
                 Block decided = this.bep.run(proposed);
                 if (!this.running.get() || decided == null)
