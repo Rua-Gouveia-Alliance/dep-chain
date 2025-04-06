@@ -10,13 +10,9 @@ import java.net.Socket;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import javax.crypto.SecretKey;
 
-import com.google.protobuf.ByteString;
-
-import group13.depchain.Client.Request;
-import group13.depchain.Messages.Message;
-import group13.depchain.Messages.MessageCode;
 import group13.depchain.blockchain.Block;
 import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;

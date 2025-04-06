@@ -1,7 +1,5 @@
 package group13.depchain.network;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -9,8 +7,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import group13.depchain.Messages.CollectedMessage;
+import group13.depchain.Messages.DSMessage;
+import group13.depchain.Messages.Message;
+import group13.depchain.Messages.MessageCode;
 import group13.depchain.crypto.Util;
-import group13.depchain.Messages.*;
 
 public class ConditionalCollect {
 
@@ -80,8 +85,7 @@ public class ConditionalCollect {
 
     public synchronized void send(int process, Message message) throws Exception {
         byte[] ds = Util.ds(message.toByteArray(), this.privateKey);
-        DSMessage dsMessage =
-                DSMessage.newBuilder().setMessage(message).setDs(ByteString.copyFrom(ds)).build();
+        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message).setDs(ByteString.copyFrom(ds)).build();
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
                 .setMessage(dsMessage.toByteString()).setEts(message.getEts());
         this.ap2p.send(process, builder);

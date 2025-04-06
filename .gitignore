@@ -8,3 +8,18 @@ blockchain/keys/
 !blockchain/states/block0.json
 blockchain/states/block*.json
 .vscode/
+
+# Latex
+*.aux
+*.toc
+*.out
+*.lof
+*.lot
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.bbl
+*.blg
+*.nav
+*.snm
+*.vrb

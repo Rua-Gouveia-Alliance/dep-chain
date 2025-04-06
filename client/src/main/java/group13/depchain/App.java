@@ -9,7 +9,7 @@ import java.util.Scanner;
 
 import org.apache.commons.lang3.StringUtils;
 
-import group13.depchain.Client.*;
+import group13.depchain.Client.Request;
 
 public class App {
 

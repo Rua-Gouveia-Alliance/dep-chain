@@ -1,7 +1,21 @@
 package group13.depchain;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
 import group13.depchain.Client.RequestType;
 import group13.depchain.blockchain.Block;
 import group13.depchain.blockchain.BlockchainState;
@@ -11,17 +25,6 @@ import group13.depchain.crypto.KeyManager;
 import group13.depchain.crypto.Util;
 import group13.depchain.producerconsumer.BlockchainMember;
 import group13.depchain.producerconsumer.ConcurrentQueue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import java.util.Queue;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.security.PrivateKey;
-import java.security.Signature;
-import java.util.LinkedList;
-import java.util.List;
 
 class BlockchainMemberTest {
 

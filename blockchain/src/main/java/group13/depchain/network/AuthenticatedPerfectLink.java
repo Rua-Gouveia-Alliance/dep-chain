@@ -1,14 +1,19 @@
 package group13.depchain.network;
 
-import java.util.HashSet;
-import javax.crypto.SecretKey;
-import com.google.protobuf.ByteString;
 import java.net.SocketException;
+import java.util.HashSet;
+
+import javax.crypto.SecretKey;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import group13.depchain.Messages.MACMessage;
+import group13.depchain.Messages.Message;
+import group13.depchain.Messages.MessageCode;
 import group13.depchain.crypto.Util;
 import group13.depchain.util.MessageId;
 import group13.depchain.util.ProcessAddress;
-import group13.depchain.Messages.*;
-import com.google.protobuf.InvalidProtocolBufferException;
 
 public class AuthenticatedPerfectLink {
 
@@ -32,9 +37,8 @@ public class AuthenticatedPerfectLink {
         ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
         MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
 
-        Message packet =
-                Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
-                        .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
+        Message packet = Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
+                .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
         sp2p.send(process, packet);
     }
 
@@ -42,9 +46,8 @@ public class AuthenticatedPerfectLink {
         ByteString mac = ByteString.copyFrom(Util.mac(message.toByteArray(), this.keys[process]));
         MACMessage macMessage = MACMessage.newBuilder().setMessage(message).setMac(mac).build();
 
-        Message packet =
-                Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
-                        .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
+        Message packet = Message.newBuilder().setCode(MessageCode.MACMESSAGE).setSender(message.getSender())
+                .setSeq(message.getSeq()).setMessage(macMessage.toByteString()).build();
         sp2p.send(process, packet);
     }
 
@@ -66,7 +69,7 @@ public class AuthenticatedPerfectLink {
         if (!Util.verifyMAC(contents.toByteArray(), message.getMac().toByteArray(),
                 this.keys[contents.getSender()]) || delivered.contains(recId))
             return null;
-        
+
         if (contents.getCode() == MessageCode.ACK) {
             sp2p.remove(received.getSender(), received.getSeq());
             return null;

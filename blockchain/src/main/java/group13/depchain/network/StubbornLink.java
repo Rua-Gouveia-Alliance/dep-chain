@@ -5,9 +5,11 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.commons.lang3.tuple.ImmutablePair;
+
+import group13.depchain.Messages.Message;
 import group13.depchain.util.ProcessAddress;
-import group13.depchain.Messages.*;
 
 public class StubbornLink {
 

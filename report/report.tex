@@ -52,11 +52,11 @@ DepChain is a simplified permissioned blockchain system designed with a strong f
 
 Distributed systems that require a high degree of reliability often rely on consensus protocols that tolerate arbitrary (Byzantine) failures. Blockchain systems are a prominent example where security, integrity, and availability must be preserved even under the presence of malicious actors. The goal of this project is to design and implement \textbf{DepChain}, a permissioned blockchain system with high dependability guarantees, developed as part of the Highly Dependable Systems course.
 
-DepChain was built in two incremental stages. The first stage focused on implementing a consensus layer based on the Byzantine Read/Write Epoch Consensus algorithm. To support this, we implemented a layered communication stack over UDP, including abstractions such as FairLossLinks, StubbornLinks (with signed acknowledgments to prevent denial-of-service attacks), ConditionalCollect, and AuthenticatedPerfectLinks. Our consensus engine supports deciding a sequence of values in a single execution, inspired by the Multi-Paxos model.
+DepChain was built in two incremental stages. The first stage focused on implementing a consensus layer based on the Byzantine Read/Write Epoch Consensus algorithm. To support this, we implemented a layered communication stack over UDP, including abstractions such as FairLossLinks, StubbornLinks (with authenticated acknowledgments to prevent denial-of-service attacks), ConditionalCollect, and AuthenticatedPerfectLinks. Our consensus engine supports deciding a sequence of values in a single execution, inspired by the Multi-Paxos model.
 
 In the second stage, we developed a blockchain execution engine capable of processing cryptocurrency transactions and executing Solidity-based smart contracts. We used Hyperledger Besu as an embedded EVM to provide deterministic contract execution and storage inspection. The system supports generic contracts beyond those required by the project, and returns their results to the clients. A client library and a terminal-based UI facilitate interaction and testing.
 
-In the remainder of this report, we describe the architecture, security considerations, implementation choices, and the results of testing the system under different conditions, including Byzantine failures.
+In the remainder of this report, we describe the architecture, security considerations, and implementation choices behind DepChain.
 
 \section{System Architecture}
 
@@ -92,7 +92,7 @@ All messages between clients and blockchain members, as well as between the bloc
 
 \begin{itemize}
     \item \textbf{FairLossLinks (FLL)}: A basic unreliable communication abstraction that mimics the behavior of UDP.
-    \item \textbf{StubbornLinks (SL)}: Ensures eventual delivery by repeatedly sending messages until an acknowledgment is received. To prevent denial-of-service attacks, acknowledgments are signed.
+    \item \textbf{StubbornLinks (SL)}: Ensures eventual delivery by repeatedly sending messages until an acknowledgment is received. To prevent denial-of-service attacks, acknowledgments are sent using the authenticated perfect links.
     \item \textbf{AuthenticatedPerfectLinks (APL)}: Builds on top of StubbornLinks to ensure that messages are delivered exactly once and are authenticated using digital signatures.
     \item \textbf{ConditionalCollect (CC)}: Used in the consensus protocol to collect messages from a quorum of peers under certain conditions.
 \end{itemize}
@@ -102,7 +102,7 @@ All messages between clients and blockchain members, as well as between the bloc
 DepChain uses Hyperledger Besu as an embedded Ethereum Virtual Machine (EVM) for executing smart contracts. Contracts are compiled from Solidity and deployed at genesis. The execution environment includes:
 
 \begin{itemize}
-    \item A custom \texttt{SimpleWorld} state provider to simulate the world state.
+    \item A Besu's \texttt{SimpleWorld} instance to simulate the world state.
     \item Storage tracking using the EVM tracer output to identify which storage slots were accessed.
     \item Return value extraction to communicate smart contract responses back to the client.
 \end{itemize}
@@ -128,7 +128,7 @@ In our implementation, consensus is triggered only by the leader. The leader col
 
 \subsection{Multi-Value Consensus Execution}
 
-Our implementation allows the leader to propose and decide on a sequence of values in the same consensus instance. This model is similar to Multi-Paxos and results in a single instance of consensus deciding the all the blocks. This optimization preserves the original algorithm’s safety properties and improves performance.
+Our implementation allows the leader to propose and decide on a sequence of values in the same consensus instance. This model is similar to Multi-Paxos and results in a single instance of consensus deciding all the blocks. This optimization preserves the original algorithm’s safety properties and improves performance.
 
 The \texttt{Decide} primitive, upon invocation, notifies the upper layer (i.e., the blockchain module) to apply the block and persist the new state. Each member independently executes the block and updates its local JSON-based ledger and world state.
 

@@ -1,13 +1,15 @@
 package group13.depchain.blockchain;
 
-import java.util.List;
-import java.util.Objects;
 import java.util.ArrayList;
 import java.util.Base64;
-import group13.depchain.Messages.*;
-import group13.depchain.crypto.Util;
+import java.util.List;
+import java.util.Objects;
 
 import com.google.protobuf.ByteString;
+
+import group13.depchain.Messages.BlockMessage;
+import group13.depchain.Messages.TransactionMessage;
+import group13.depchain.crypto.Util;
 
 public class Block {
     private byte[] blockHash;

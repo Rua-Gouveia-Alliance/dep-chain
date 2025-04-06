@@ -1,17 +1,23 @@
 package group13.depchain.consensus;
 
-import com.google.protobuf.ByteString;
-import com.google.protobuf.InvalidProtocolBufferException;
 import java.net.SocketException;
-import group13.depchain.network.AuthenticatedPerfectLink;
-import group13.depchain.network.ConditionalCollect;
-import group13.depchain.network.OutputPredicate;
-import group13.depchain.Messages.*;
-import group13.depchain.blockchain.Block;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
+
+import group13.depchain.Messages.BlockMessage;
+import group13.depchain.Messages.Message;
+import group13.depchain.Messages.MessageCode;
+import group13.depchain.Messages.StateMessage;
+import group13.depchain.Messages.WSEntry;
+import group13.depchain.blockchain.Block;
+import group13.depchain.network.AuthenticatedPerfectLink;
+import group13.depchain.network.ConditionalCollect;
+import group13.depchain.network.OutputPredicate;
 
 public class ByzantineConsensus {
 
@@ -188,9 +194,9 @@ public class ByzantineConsensus {
 
         System.out.println("[ByzantineConsensus] Delivered READ");
 
-        StateMessage.Builder stateMessageBuilder =
-                StateMessage.newBuilder().setVal(this.epochstate.getVal().toBlockMessage())
-                        .setValts(this.epochstate.getValts());
+        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                .setVal(this.epochstate.getVal().toBlockMessage())
+                .setValts(this.epochstate.getValts());
 
         for (WSEntry e : this.epochstate.getWriteset())
             stateMessageBuilder.addWriteset(e);
