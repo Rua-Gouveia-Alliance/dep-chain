@@ -101,14 +101,14 @@ class ByzantineConsensusTest {
         }
     }
 
-    void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, Block proposed)
-            throws Exception {
+    void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, int ets,
+            Block proposed) throws Exception {
         PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
         int f = (N - 1) / 3;
         int maj = N - f;
 
-        generateDSMESSAGE(queue, 0, maj, 0, 0);
-        generateABORT(queue, maj, f, 0);
+        generateDSMESSAGE(queue, 0, maj, 0, ets);
+        generateABORT(queue, maj, f, ets);
 
         StateMessage stateMessage =
                 StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
@@ -124,13 +124,13 @@ class ByzantineConsensusTest {
         byte[] ds = Util.ds(state.toByteArray(), KP);
         sigs[0] = ds;
 
-        generateCOLLECTED(queue, 0, 1, 0, msgs, sigs);
+        generateCOLLECTED(queue, 0, 1, ets, msgs, sigs);
 
-        generateWRITE(queue, 0, maj, 0, proposed);
-        generateABORT(queue, maj, f, 0);
+        generateWRITE(queue, 0, maj, ets, proposed);
+        generateABORT(queue, maj, f, ets);
 
-        generateACCEPT(queue, 0, maj, 0, proposed);
-        generateABORT(queue, maj, f, 0);
+        generateACCEPT(queue, 0, maj, ets, proposed);
+        generateABORT(queue, maj, f, ets);
     }
 
     void generateReorderedHonestMajorityMessages(Queue<Message> queue, int id, int N,
@@ -202,11 +202,15 @@ class ByzantineConsensusTest {
         Block proposed = new Block(tx);
 
         Queue<Message> queue = new LinkedList<>();
-        generateHonestMajorityMessages(queue, id, N, proposed);
 
-        Block result = testLeader(queue, id, N, proposed);
-        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-                "Proposed block and result block do not match.");
+        // Simulate 3 epochs
+        for (int i = 0; i < 4; ++i) {
+            generateHonestMajorityMessages(queue, id, N, i, proposed);
+            Block result = testLeader(queue, id, N, proposed);
+            assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+                    "Proposed block and result block do not match.");
+        }
+
     }
 
     @Test
