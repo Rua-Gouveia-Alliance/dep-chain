@@ -25,6 +25,7 @@ public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
     private long blockId = 0;
     private byte[] previousBlockHash = new byte[0];
+    private Block latestBlock;
 
     public BlockchainState() {
     }
@@ -112,6 +113,13 @@ public class BlockchainState {
 
         // debug
         System.out.println(this.toString());
+
+        // Save latest block object for testing purposes
+        this.latestBlock = block;
+    }
+
+    public Block getLatestBlock() {
+        return this.latestBlock;
     }
 
     public void setBlockId(long blockId) {
