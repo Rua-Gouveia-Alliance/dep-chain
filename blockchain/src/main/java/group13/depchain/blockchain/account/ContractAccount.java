@@ -102,19 +102,15 @@ public class ContractAccount extends BlockchainAccount {
         executor.commitWorldState();
         executor.execute();
 
-        System.out.println(output.toString());
-
         // update storage
         contractAccount = (MutableAccount) world.get(to);
         Set<String> keys = extractStorageSlots(output);
         for (String key : keys) {
             UInt256 key_uint256 = UInt256.fromHexString(key);
             UInt256 value = contractAccount.getStorageValue(key_uint256);
-            System.out.println("[deploy] Storage key: " + key + " value: " + value.toHexString());
 
-            if (!value.equals(UInt256.ZERO)) {
-                this.storage.put(key, value.toHexString());
-            }
+            System.out.println("[executeTransaction] Storage key: " + key + " value: " + value.toHexString());
+            this.storage.put(key, value.toHexString());
         }
 
         // update balances
@@ -159,11 +155,9 @@ public class ContractAccount extends BlockchainAccount {
         for (String key : keys) {
             UInt256 key_uint256 = UInt256.fromHexString(key);
             UInt256 value = contractAccount.getStorageValue(key_uint256);
-            System.out.println("[deploy] Storage key: " + key + " value: " + value.toHexString());
 
-            if (!value.equals(UInt256.ZERO)) {
-                this.storage.put(key, value.toHexString());
-            }
+            System.out.println("[deploy] Storage key: " + key + " value: " + value.toHexString());
+            this.storage.put(key, value.toHexString());
         }
     }
 

@@ -126,7 +126,7 @@ public class App {
         if (addr.startsWith("0x"))
             addr = addr.substring(2);
 
-        String functionSignature = "537df3b6"; // removeFromBlacklist(address)
+        String functionSignature = "0x537df3b6"; // removeFromBlacklist(address)
         String hexAddr = StringUtils.leftPad(addr, 64, "0");
         String payload = functionSignature + hexAddr;
         Request request = client.createTransaction(false, IST_COIN_ADDRESS, 0, payload);
