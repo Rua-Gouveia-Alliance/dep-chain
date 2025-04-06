@@ -14,10 +14,13 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+
+import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.tuweni.crypto.sodium.DiffieHelman.Secret;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class KeyManager {
@@ -36,14 +39,53 @@ public class KeyManager {
         Files.write(file_ku, publicKey.getBytes());
         Files.write(file_kp, privateKey.getBytes());
     }
-
-    public static void generateSecretKey(Path file) throws Exception {
+    
+    public static SecretKey generateSecretKey() throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
         keyGenerator.init(256);
         SecretKey secretKey = keyGenerator.generateKey();
 
-        String encodedKey = Base64.getEncoder().encodeToString(secretKey.getEncoded());
-        Files.write(file, encodedKey.getBytes());
+        return secretKey;
+    }
+
+    public static byte[] encryptSecretKey(SecretKey SK, PublicKey PK) throws Exception{
+        byte[] SKBytes = SK.getEncoded();
+
+        Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
+        cipher.init(Cipher.ENCRYPT_MODE, PK);
+        return cipher.doFinal(SKBytes);
+    }
+
+    public static SecretKey decryptSecretKey(byte[] encrypted, PrivateKey PK) throws Exception{
+        Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
+        cipher.init(Cipher.DECRYPT_MODE, PK);
+        byte[] decryptedKeyBytes = cipher.doFinal(encrypted);
+        
+        return new SecretKeySpec(decryptedKeyBytes, "AES");
+    }
+
+    public static SecretKey loadSecretKey(Path file) throws Exception {
+        byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
+        return new SecretKeySpec(keyBytes, "HmacSHA256");
+    }
+
+    public static SecretKey[] generateSecretKeys(int N) throws Exception {
+        SecretKey[] Ks = new SecretKey[N];
+        for (int i = 0; i < N; i++) {
+            Ks[i] = generateSecretKey();
+        }
+        return Ks;
+    }
+
+    public static SecretKey[] getMemberSecretKeys(int N, int p, String dir) throws Exception {
+        SecretKey[] Ks = new SecretKey[N];
+        for (int i = 0; i < N; i++) {
+            if (i < p)
+                Ks[i] = loadSecretKey(Paths.get(dir, "k_" + i + "_" + p));
+            else
+                Ks[i] = loadSecretKey(Paths.get(dir, "k_" + p + "_" + i));
+        }
+        return Ks;
     }
 
     public static PrivateKey loadPrivateKey(Path file) throws Exception {
@@ -60,17 +102,9 @@ public class KeyManager {
         return keyFactory.generatePublic(spec);
     }
 
-    public static SecretKey loadSecretKey(Path file) throws Exception {
-        byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
-        return new SecretKeySpec(keyBytes, "HmacSHA256");
-    }
-
     public static void generateMemberKeys(int N, String dir) throws Exception {
         for (int i = 0; i < N; i++) {
             generateMemberKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i));
-            for (int j = i; j < N; j++) {
-                generateSecretKey(Paths.get(dir, "k_" + i + "_" + j));
-            }
         }
     }
 
@@ -84,17 +118,6 @@ public class KeyManager {
             KUs[i] = loadPublicKey(Paths.get(dir, "ku_" + i));
         }
         return KUs;
-    }
-
-    public static SecretKey[] getMemberSecretKeys(int N, int p, String dir) throws Exception {
-        SecretKey[] Ks = new SecretKey[N];
-        for (int i = 0; i < N; i++) {
-            if (i < p)
-                Ks[i] = loadSecretKey(Paths.get(dir, "k_" + i + "_" + p));
-            else
-                Ks[i] = loadSecretKey(Paths.get(dir, "k_" + p + "_" + i));
-        }
-        return Ks;
     }
 
     public static void generateClientKeyPair(Path file_ku, Path file_kp, Path file_addr) throws Exception {
