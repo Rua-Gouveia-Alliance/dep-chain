@@ -138,6 +138,41 @@ class ByzantineConsensusTest {
         generateABORT(queue, maj, f, 0);
     }
 
+    void generateReorderedHonestMajorityMessages(Queue<Message> queue, int id, int N,
+            Block proposed) throws Exception {
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        int f = (N - 1) / 3;
+        int maj = N - f;
+
+        StateMessage stateMessage =
+                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
+        Message state = Message.newBuilder().setCode(MessageCode.STATE)
+                .setMessage(stateMessage.toByteString()).setEts(0).build();
+
+        List<Message> msgs = new ArrayList<>();
+        for (int i = 0; i < N; i++)
+            msgs.add(Message.newBuilder().setCode(MessageCode.NULL).build());
+        msgs.set(0, state);
+
+        byte[][] sigs = new byte[1024][N];
+        byte[] ds = Util.ds(state.toByteArray(), KP);
+        sigs[0] = ds;
+
+        generateDSMESSAGE(queue, 0, maj, 0, 0);
+        generateABORT(queue, maj, f, 0);
+
+        generateCOLLECTED(queue, 0, 1, 0, msgs, sigs);
+
+        // Send half of write messages
+        generateWRITE(queue, 0, maj / 2, 0, proposed);
+        // Send half of accept messages
+        generateACCEPT(queue, 0, maj / 2, 0, proposed);
+
+        // Send rest of messages
+        generateWRITE(queue, maj / 2, maj, 0, proposed);
+        generateACCEPT(queue, maj / 2, maj, 0, proposed);
+    }
+
     void generateFakeDSMajority(Queue<Message> queue, int id, int N) throws Exception {
         PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
         int f = (N - 1) / 3;
@@ -174,6 +209,30 @@ class ByzantineConsensusTest {
 
         Queue<Message> queue = new LinkedList<>();
         generateHonestMajorityMessages(queue, id, N, proposed);
+
+        Block result = testLeader(queue, id, N, proposed);
+        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+                "Proposed block and result block do not match.");
+    }
+
+    @Test
+    void testHonestReorderedMajorityLeader() throws Exception {
+        int id = 0, N = 6;
+
+        if (!Files.exists(Paths.get("../../../resources/keys"))) {
+            Files.createDirectories(Paths.get("../../../resources/keys"));
+            KeyManager.generateMemberKeys(N, "../../../resources/keys");
+        }
+        KeyManager.generateMemberKeys(N, "../../../resources/keys");
+
+        Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
+                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
+                .setSignature(ByteString.copyFrom(new byte[0])).build();
+        Transaction tx = Transaction.fromRequest(request);
+        Block proposed = new Block(tx);
+
+        Queue<Message> queue = new LinkedList<>();
+        generateReorderedHonestMajorityMessages(queue, id, N, proposed);
 
         Block result = testLeader(queue, id, N, proposed);
         assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
