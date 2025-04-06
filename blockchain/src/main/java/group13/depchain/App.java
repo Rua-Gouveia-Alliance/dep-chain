@@ -1,7 +1,5 @@
 package group13.depchain;
 
-import group13.depchain.producerconsumer.BlockchainMember;
-
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -12,6 +10,7 @@ import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.producerconsumer.BlockchainClientManager;
+import group13.depchain.producerconsumer.BlockchainMember;
 import group13.depchain.producerconsumer.ConcurrentQueue;
 
 public class App {

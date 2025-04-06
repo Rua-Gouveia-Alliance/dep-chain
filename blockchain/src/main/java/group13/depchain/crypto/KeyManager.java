@@ -20,7 +20,6 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.tuweni.crypto.sodium.DiffieHelman.Secret;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class KeyManager {
@@ -39,7 +38,7 @@ public class KeyManager {
         Files.write(file_ku, publicKey.getBytes());
         Files.write(file_kp, privateKey.getBytes());
     }
-    
+
     public static SecretKey generateSecretKey() throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
         keyGenerator.init(256);
@@ -48,7 +47,7 @@ public class KeyManager {
         return secretKey;
     }
 
-    public static byte[] encryptSecretKey(SecretKey SK, PublicKey PK) throws Exception{
+    public static byte[] encryptSecretKey(SecretKey SK, PublicKey PK) throws Exception {
         byte[] SKBytes = SK.getEncoded();
 
         Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
@@ -56,11 +55,11 @@ public class KeyManager {
         return cipher.doFinal(SKBytes);
     }
 
-    public static SecretKey decryptSecretKey(byte[] encrypted, PrivateKey PK) throws Exception{
+    public static SecretKey decryptSecretKey(byte[] encrypted, PrivateKey PK) throws Exception {
         Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
         cipher.init(Cipher.DECRYPT_MODE, PK);
         byte[] decryptedKeyBytes = cipher.doFinal(encrypted);
-        
+
         return new SecretKeySpec(decryptedKeyBytes, "AES");
     }
 

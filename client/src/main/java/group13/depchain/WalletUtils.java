@@ -1,5 +1,9 @@
 package group13.depchain;
 
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
 import java.security.PublicKey;
@@ -9,10 +13,6 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Base64;
-import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;

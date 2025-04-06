@@ -1,7 +1,24 @@
 package group13.depchain;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+
+import com.google.protobuf.ByteString;
+
 import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
 import group13.depchain.Messages.CollectedMessage;
@@ -17,18 +34,6 @@ import group13.depchain.consensus.EpochState;
 import group13.depchain.crypto.KeyManager;
 import group13.depchain.crypto.Util;
 import group13.depchain.network.AuthenticatedPerfectLink;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-import java.security.PrivateKey;
-import java.security.PublicKey;
-import java.util.Queue;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import com.google.protobuf.ByteString;
 
 class ByzantineConsensusTest {
     private static final String TEST_KEYS_DIR = "../../../resources/keys";

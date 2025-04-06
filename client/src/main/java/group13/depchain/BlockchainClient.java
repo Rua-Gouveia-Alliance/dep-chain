@@ -16,7 +16,9 @@ import java.util.List;
 
 import com.google.protobuf.ByteString;
 
-import group13.depchain.Client.*;
+import group13.depchain.Client.Request;
+import group13.depchain.Client.RequestType;
+import group13.depchain.Client.Response;
 
 public class BlockchainClient {
 

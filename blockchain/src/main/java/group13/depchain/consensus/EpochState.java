@@ -1,8 +1,10 @@
 package group13.depchain.consensus;
 
-import java.util.List;
 import java.util.ArrayList;
-import group13.depchain.Messages.*;
+import java.util.List;
+
+import group13.depchain.Messages.StateMessage;
+import group13.depchain.Messages.WSEntry;
 import group13.depchain.blockchain.Block;
 
 public class EpochState {
@@ -62,8 +64,7 @@ public class EpochState {
     }
 
     public void addVal(Block val) {
-        WSEntry entry =
-                WSEntry.newBuilder().setValts(this.valts).setVal(val.toBlockMessage()).build();
+        WSEntry entry = WSEntry.newBuilder().setValts(this.valts).setVal(val.toBlockMessage()).build();
         this.writeset.add(entry);
     }
 
