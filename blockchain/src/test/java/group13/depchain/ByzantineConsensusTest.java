@@ -1,5 +1,6 @@
 package group13.depchain;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
@@ -30,6 +31,7 @@ import java.nio.file.Paths;
 import com.google.protobuf.ByteString;
 
 class ByzantineConsensusTest {
+    private static final String TEST_KEYS_DIR = "../../../resources/keys";
 
     void generateABORT(Queue<Message> queue, int i, int count, int ets) throws Exception {
         int max = i + count;
@@ -91,7 +93,7 @@ class ByzantineConsensusTest {
             Message message = Message.newBuilder().setCode(MessageCode.STATE)
                     .setMessage(stateMessage.toByteString()).build();
 
-            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
+            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, TEST_KEYS_DIR);
             byte[] ds = Util.ds(message.toByteArray(), privateKey);
             DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
                     .setDs(ByteString.copyFrom(ds)).build();
@@ -103,7 +105,7 @@ class ByzantineConsensusTest {
 
     void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, Block proposed)
             throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
         int f = (N - 1) / 3;
         int maj = N - f;
 
@@ -135,7 +137,7 @@ class ByzantineConsensusTest {
 
     void generateReorderedHonestMajorityMessages(Queue<Message> queue, int id, int N,
             Block proposed) throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
         int f = (N - 1) / 3;
         int maj = N - f;
 
@@ -176,8 +178,8 @@ class ByzantineConsensusTest {
     }
 
     Block testLeader(Queue<Message> queue, int id, int N, Block proposed) throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
-        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
+        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, TEST_KEYS_DIR);
 
         AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
         when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
@@ -185,15 +187,19 @@ class ByzantineConsensusTest {
         return bep.run(proposed);
     }
 
+    @BeforeAll
+    static void setupKeys() throws Exception {
+        int N = 6;
+        if (!Files.exists(Paths.get(TEST_KEYS_DIR))) {
+            Files.createDirectories(Paths.get(TEST_KEYS_DIR));
+            KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+        }
+        KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+    }
+
     @Test
     void testHonestMajorityLeader() throws Exception {
         int id = 0, N = 6;
-
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
@@ -213,12 +219,6 @@ class ByzantineConsensusTest {
     void testHonestReorderedMajorityLeader() throws Exception {
         int id = 0, N = 6;
 
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
-
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
                 .setSignature(ByteString.copyFrom(new byte[0])).build();
@@ -236,12 +236,6 @@ class ByzantineConsensusTest {
     @Test
     void testFakeDSMajorityLeader() throws Exception {
         int id = 0, N = 6;
-
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
