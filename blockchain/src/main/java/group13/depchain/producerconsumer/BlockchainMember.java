@@ -101,6 +101,8 @@ public class BlockchainMember extends Thread {
             }
             al.close();
         } catch (Exception e) {
+            System.out.println("[BlockchainMember] Exception: " + e);
+            e.printStackTrace();
             this.running.set(false);
         }
     }
