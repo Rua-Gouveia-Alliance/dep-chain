@@ -2,6 +2,7 @@ package group13.depchain.blockchain;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -261,7 +262,9 @@ public class BlockchainState {
             state.insertAccount(account);
         }
         state.setBlockId(id + 1);
-        state.setPreviousBlockHash(Util.hexStringToByteArray(root.get("block_hash").asText()));
+        System.out.println();
+        byte[] prevHashBytes = Base64.getDecoder().decode(root.get("block_hash").asText());
+        state.setPreviousBlockHash(prevHashBytes);
 
         // debug
         System.out.println(state.toString());

@@ -1,6 +1,7 @@
 package group13.depchain;
 
 import org.apache.commons.lang3.StringUtils;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
@@ -18,26 +19,40 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import java.util.Queue;
 import java.net.Authenticator.RequestorType;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.util.LinkedList;
 import com.google.protobuf.ByteString;
 import group13.depchain.Client.RequestType;
 
-class ByzantineConsensusTest {
+class BlockchainMemberTest {
 
     private int nonce = 0;
     private String IST_COIN_ADDRESS = "0x4321dcbA4321daed1234dcba1234000000001ced";
     private String addr_0 = "0x3a89a0f8dfaef2cad42e124049ee152bb01edc85";
     private String addr_1 = "0xb47dc6ee9aba1b31dbe92933fe5a38f4df15b8d8";
     private String totaSupplyFuncSelector = "0x18160ddd";
+    private static final String TEST_KEYS_DIR = "../../../resources/keys";
+    
+
+    @BeforeAll
+    static void setupKeys() throws Exception {
+        int N = 6;
+        if (!Files.exists(Paths.get(TEST_KEYS_DIR))) {
+            Files.createDirectories(Paths.get(TEST_KEYS_DIR));
+            KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+        }
+        KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+    }
     
 
     public byte[] genSignature(int i, RequestType type, boolean isTransfer, String from, String to,
             long amount, long nonce, String payload) throws Exception {
         int type_n = type.getNumber();
         int transfer_type = isTransfer ? 0 : 1;
-        PrivateKey KP = KeyManager.getMemberPrivateKey(0, "./keys");
+        PrivateKey KP = KeyManager.getMemberPrivateKey(i, TEST_KEYS_DIR);
  
         String msg = type_n + from + to + amount + nonce + transfer_type + payload;
         byte[] raw = msg.getBytes();
@@ -79,6 +94,7 @@ class ByzantineConsensusTest {
     @Test
     void testInvalidTransaction() throws Exception {
         int id = 1, N = 6;
+
         Queue<Block> queue = new LinkedList<>();
         
         String hexFrom = StringUtils.leftPad(addr_0.substring(2), 64, "0");
@@ -112,7 +128,7 @@ class ByzantineConsensusTest {
             "Invalid transactions should not be accepted into the state");
    
     }
-    
+
     /* TODO: delete?
     @Test
     void testInvalidTransaction() throws Exception {

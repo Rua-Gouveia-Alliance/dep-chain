@@ -1,5 +1,6 @@
 package group13.depchain;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
@@ -30,6 +31,7 @@ import java.nio.file.Paths;
 import com.google.protobuf.ByteString;
 
 class ByzantineConsensusTest {
+    private static final String TEST_KEYS_DIR = "../../../resources/keys";
 
     void generateABORT(Queue<Message> queue, int i, int count, int ets) throws Exception {
         int max = i + count;
@@ -91,7 +93,7 @@ class ByzantineConsensusTest {
             Message message = Message.newBuilder().setCode(MessageCode.STATE)
                     .setMessage(stateMessage.toByteString()).build();
 
-            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
+            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, TEST_KEYS_DIR);
             byte[] ds = Util.ds(message.toByteArray(), privateKey);
             DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
                     .setDs(ByteString.copyFrom(ds)).build();
@@ -101,19 +103,19 @@ class ByzantineConsensusTest {
         }
     }
 
-    void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, Block proposed)
-            throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+    void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, int ets,
+            Block proposed) throws Exception {
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
         int f = (N - 1) / 3;
         int maj = N - f;
 
-        generateDSMESSAGE(queue, 0, maj, 0, 0);
-        generateABORT(queue, maj, f, 0);
+        generateDSMESSAGE(queue, 0, maj, 0, ets);
+        generateABORT(queue, maj, f, ets);
 
         StateMessage stateMessage =
-                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
+                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(ets).build();
         Message state = Message.newBuilder().setCode(MessageCode.STATE)
-                .setMessage(stateMessage.toByteString()).setEts(0).build();
+                .setMessage(stateMessage.toByteString()).setEts(ets).build();
 
         List<Message> msgs = new ArrayList<>();
         for (int i = 0; i < N; i++)
@@ -124,18 +126,18 @@ class ByzantineConsensusTest {
         byte[] ds = Util.ds(state.toByteArray(), KP);
         sigs[0] = ds;
 
-        generateCOLLECTED(queue, 0, 1, 0, msgs, sigs);
+        generateCOLLECTED(queue, 0, 1, ets, msgs, sigs);
 
-        generateWRITE(queue, 0, maj, 0, proposed);
-        generateABORT(queue, maj, f, 0);
+        generateWRITE(queue, 0, maj, ets, proposed);
+        generateABORT(queue, maj, f, ets);
 
-        generateACCEPT(queue, 0, maj, 0, proposed);
-        generateABORT(queue, maj, f, 0);
+        generateACCEPT(queue, 0, maj, ets, proposed);
+        generateABORT(queue, maj, f, ets);
     }
 
     void generateReorderedHonestMajorityMessages(Queue<Message> queue, int id, int N,
             Block proposed) throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
         int f = (N - 1) / 3;
         int maj = N - f;
 
@@ -175,25 +177,34 @@ class ByzantineConsensusTest {
         generateDSMESSAGE(queue, 0, maj, 1, 0);
     }
 
-    Block testLeader(Queue<Message> queue, int id, int N, Block proposed) throws Exception {
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
-        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
+    ArrayList<Block> testLeader(Queue<Message> queue, int id, int N, Block proposed, int rounds)
+            throws Exception {
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, TEST_KEYS_DIR);
+        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, TEST_KEYS_DIR);
 
         AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
         when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
         ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, KP, KUs, mockAp2p);
-        return bep.run(proposed);
+        ArrayList<Block> results = new ArrayList<>();
+
+        for (int i = 0; i < rounds; ++i)
+            results.add(bep.run(proposed));
+        return results;
+    }
+
+    @BeforeAll
+    static void setupKeys() throws Exception {
+        int N = 6;
+        if (!Files.exists(Paths.get(TEST_KEYS_DIR))) {
+            Files.createDirectories(Paths.get(TEST_KEYS_DIR));
+            KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+        }
+        KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
     }
 
     @Test
     void testHonestMajorityLeader() throws Exception {
-        int id = 0, N = 6;
-
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
+        int id = 0, N = 6, rounds = 4;
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
@@ -202,22 +213,22 @@ class ByzantineConsensusTest {
         Block proposed = new Block(tx);
 
         Queue<Message> queue = new LinkedList<>();
-        generateHonestMajorityMessages(queue, id, N, proposed);
 
-        Block result = testLeader(queue, id, N, proposed);
-        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-                "Proposed block and result block do not match.");
+        // Simulate 4 epochs
+        for (int i = 0; i < rounds; ++i) {
+            generateHonestMajorityMessages(queue, id, N, i, proposed);
+        }
+
+        ArrayList<Block> results = testLeader(queue, id, N, proposed, rounds);
+        for (int i = 0; i < rounds; ++i) {
+            assertEquals(proposed.getBlockHashHex(), results.get(i).getBlockHashHex(),
+                    "Proposed block and result block do not match on round " + i + ".");
+        }
     }
 
     @Test
     void testHonestReorderedMajorityLeader() throws Exception {
         int id = 0, N = 6;
-
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
@@ -228,20 +239,14 @@ class ByzantineConsensusTest {
         Queue<Message> queue = new LinkedList<>();
         generateReorderedHonestMajorityMessages(queue, id, N, proposed);
 
-        Block result = testLeader(queue, id, N, proposed);
-        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+        ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
+        assertEquals(proposed.getBlockHashHex(), result.get(0).getBlockHashHex(),
                 "Proposed block and result block do not match.");
     }
 
     @Test
     void testFakeDSMajorityLeader() throws Exception {
         int id = 0, N = 6;
-
-        if (!Files.exists(Paths.get("../../../resources/keys"))) {
-            Files.createDirectories(Paths.get("../../../resources/keys"));
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        }
-        KeyManager.generateMemberKeys(N, "../../../resources/keys");
 
         Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
                 .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
@@ -251,7 +256,7 @@ class ByzantineConsensusTest {
 
         Queue<Message> queue = new LinkedList<>();
         generateFakeDSMajority(queue, id, N);
-        Block result = testLeader(queue, id, N, proposed);
-        assertTrue(result.aborted(), "Epoch was not aborted.");
+        ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
+        assertTrue(result.get(0).aborted(), "Epoch was not aborted.");
     }
 }
