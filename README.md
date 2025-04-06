@@ -42,7 +42,7 @@ go to the root of the project and type the following:
 $ mvn clean compile
 ```
 
-If you want faster compilation and have don't desire to run the tests, you can type:
+If you want faster compilation and don't desire to run the tests, you can type:
 
 ```sh
 $ mvn clean compile -DskipTests
