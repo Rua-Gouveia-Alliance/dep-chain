@@ -27,9 +27,9 @@ If the states directory doesn't exist, it will be created and the genesis block 
 
 ### Keys
 
-All public and private keys of the blockchain members are stored at `keys`.
+All public and private keys of the blockchain members are stored in `keys`.
 
-The public and private keys of the clients are stored at `keys/clients`, and for convenience their addresses are also stored at the same place, although we never read from these files as we use the public keys to determine the addresses.
+The public and private keys of the clients are stored in `keys/clients`, and for convenience their addresses are also stored in the same place, although we never read from these files as we use the public keys to determine the addresses.
 
 All the keys come pre-generated for convenience. If the `keys` directory doesn't exist, it will be created and all the keys will be automatically generated.
 
@@ -39,13 +39,13 @@ In order to compile the whole project, including generating the necessary target
 go to the root of the project and type the following:
 
 ```sh
-$ mvn clean compile
+$ mvn clean install
 ```
 
 If you want faster compilation and don't desire to run the tests, you can type:
 
 ```sh
-$ mvn clean compile -DskipTests
+$ mvn clean install -DskipTests
 ```
 
 ## Executing
