@@ -51,26 +51,24 @@ public class KeyManager {
     public static String encryptSecretKey(SecretKey key, PrivateKey senderKey,
             PublicKey receiverKey) throws Exception {
         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, senderKey);
+        cipher.init(Cipher.ENCRYPT_MODE, receiverKey);
         byte[] encryptedKey = cipher.doFinal(key.getEncoded());
         byte[] ds = Util.ds(encryptedKey, senderKey);
-        String packet = Base64.getEncoder().encodeToString(encryptedKey) + "\n"
+        String packet = Base64.getEncoder().encodeToString(encryptedKey) + ":"
                 + Base64.getEncoder().encodeToString(ds);
         return packet;
     }
 
     public static SecretKey decryptSecretKey(String encrypted, PrivateKey receiverKey,
             PublicKey senderKey) throws Exception {
-        String[] lines = encrypted.split("\n");
+        String[] lines = encrypted.split(":");
         if (lines.length != 2) {
-            System.out.println("[KeyManager] Error: 1");
             return null;
         }
 
         byte[] key = Base64.getDecoder().decode(lines[0]);
         byte[] ds = Base64.getDecoder().decode(lines[1]);
         if (!Util.verifyDS(key, ds, senderKey)) {
-            System.out.println("[KeyManager] Error: 2");
             return null;
         }
 
@@ -80,7 +78,6 @@ public class KeyManager {
         try {
             decryptedKeyBytes = cipher.doFinal(key);
         } catch (IllegalBlockSizeException | BadPaddingException e) {
-            System.out.println("[KeyManager] Error: 3");
             return null;
         }
         return new SecretKeySpec(decryptedKeyBytes, "AES");

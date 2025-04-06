@@ -78,25 +78,21 @@ public class BlockchainMember extends Thread {
                     PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
                     out.println(packet);
                     System.out.println(
-                            "[BlockchainMember] Sent encrypted secret key to process: " + i + "; key: " + packet);
+                            "[BlockchainMember] Sent encrypted secret key to process: " + i);
                 }
 
                 ServerSocket socket = new ServerSocket(11000 + this.id);
                 Socket clientSocket = socket.accept();
-                BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                BufferedReader in =
+                        new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 
                 int collected = 0;
-                while (collected < this.N - this.id) {
+                while (collected < this.N - this.id - 1) {
                     String key = in.readLine();
-                    System.out.println("[BlockchainMember] Received: " + key);
-
-                    if (key == null) {
-                        System.out.println("[BlockchainMember] Received null");
-                        System.exit(0);
+                    if (key == null)
                         continue;
-                    }
 
-                    for (int i = this.id - 1; i > -1; --i) {
+                    for (int i = this.id + 1; i < this.N; ++i) {
                         SecretKey k = KeyManager.decryptSecretKey(key, KP, KUs[i]);
                         if (k != null) {
                             if (SKs[i] == null) {
@@ -114,7 +110,8 @@ public class BlockchainMember extends Thread {
                 for (Socket s : sockets)
                     s.close();
 
-                AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
+                AuthenticatedPerfectLink al =
+                        new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
                 this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             }
 
