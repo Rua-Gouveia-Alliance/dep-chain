@@ -38,7 +38,7 @@ João Gouveia\orcidID{102611}}
 \maketitle              % typeset the header of the contribution
 %
 \begin{abstract}
-DepChain is a simplified permissioned blockchain system designed with a strong focus on dependability and Byzantine fault tolerance. This project was developed in two stages as part of the Highly Dependable Systems course. In the first stage, we implemented a Byzantine consensus algorithm based on the Read/Write Epoch Consensus model, enhanced with layered communication abstractions such as Fair Loss Links, Stubborn Links, and Authenticated Perfect Links. Our implementation ensures strong safety and liveness guarantees in the presence of up to \(f\) Byzantine members in a system of \(n \geq 3f + 1\) nodes. In the second stage, we built a flexible blockchain layer capable of processing cryptocurrency transfers and executing Solidity smart contracts within a sandboxed EVM environment using Hyperledger Besu. Our system supports generic contract execution, including dynamic storage inspection and return value propagation to clients. Security measures include signed communication, replay protection via nonces, and contract-level access control through a blacklist. The system is tested through unit and integration tests, and a TUI frontend is provided for demonstration. DepChain provides a strong foundation for building highly dependable decentralized systems with support for extensible application logic.
+DepChain is a simplified permissioned blockchain system designed with a strong focus on dependability and Byzantine fault tolerance. This project was developed in two stages as part of the Highly Dependable Systems course. In the first stage, we implemented a Byzantine consensus algorithm based on the Read/Write Epoch Consensus model, supported by layered communication abstractions such as Fair Loss Links, Stubborn Links, and Authenticated Perfect Links. Our implementation ensures strong safety and liveness guarantees in the presence of up to \(f\) Byzantine members in a system of \(n \geq 3f + 1\) nodes. In the second stage, we built a flexible blockchain layer capable of processing cryptocurrency transfers and executing Solidity smart contracts within a sandboxed EVM environment using Hyperledger Besu. Our system supports generic contract execution, including dynamic storage inspection and return value propagation to clients. Security measures include signed communication, replay protection via nonces, and contract-level access control through a blacklist. The system is tested through unit and integration tests, and a TUI frontend is provided for demonstration. DepChain provides a strong foundation for building highly dependable decentralized systems with support for extensible application logic.
 
 \keywords{Blockchain \and Byzantine Consensus \and Smart Contracts \and Hyperledger Besu \and Dependability.}
 \end{abstract}
@@ -52,7 +52,7 @@ DepChain is a simplified permissioned blockchain system designed with a strong f
 
 Distributed systems that require a high degree of reliability often rely on consensus protocols that tolerate arbitrary (Byzantine) failures. Blockchain systems are a prominent example where security, integrity, and availability must be preserved even under the presence of malicious actors. The goal of this project is to design and implement \textbf{DepChain}, a permissioned blockchain system with high dependability guarantees, developed as part of the Highly Dependable Systems course.
 
-DepChain was built in two incremental stages. The first stage focused on implementing a consensus layer based on the Byzantine Read/Write Epoch Consensus algorithm. To support this, we implemented a layered communication stack over UDP, including abstractions such as FairLossLinks, StubbornLinks (with authenticated acknowledgments to prevent denial-of-service attacks), ConditionalCollect, and AuthenticatedPerfectLinks. Our consensus engine supports deciding a sequence of values in a single execution, inspired by the Multi-Paxos model.
+DepChain was built in two incremental stages. The first stage focused on implementing a consensus layer based on the Byzantine Read/Write Epoch Consensus algorithm. To support this, we implemented a layered communication stack over UDP, including abstractions such as FairLossLinks, StubbornLinks (with authenticated acknowledgments to prevent denial-of-service attacks), ConditionalCollect, and AuthenticatedPerfectLinks. Our consensus engine supports deciding a sequence of values in a single instance, possible by bundling transactions in blocks.
 
 In the second stage, we developed a blockchain execution engine capable of processing cryptocurrency transactions and executing Solidity-based smart contracts. We used Hyperledger Besu as an embedded EVM to provide deterministic contract execution and storage inspection. The system supports generic contracts beyond those required by the project, and returns their results to the clients. A client library and a terminal-based UI facilitate interaction and testing.
 
@@ -88,7 +88,7 @@ If the timer expires but no transactions are available, the leader will propose 
 
 \subsection{Communication and Serialization}
 
-All messages between clients and blockchain members, as well as between the blockchain members themselves, are serialized using Protocol Buffers. Communication is performed using UDP sockets, with custom abstractions built on top to provide reliability and security. These abstractions include:
+All messages between clients and blockchain members, as well as between the blockchain members themselves, are serialized using Protocol Buffers. Protocol Buffers were used due to their performance and the fact that they are not vulnerable to remote code execution expoits associated with serializing and deserializing objects. Communication is performed using UDP sockets, with custom abstractions built on top to provide reliability and security. These abstractions include:
 
 \begin{itemize}
     \item \textbf{FairLossLinks (FLL)}: A basic unreliable communication abstraction that mimics the behavior of UDP.
@@ -111,7 +111,7 @@ This design allows DepChain to support the execution of arbitrary smart contract
 
 \section{Byzantine Fault-Tolerant Consensus}
 
-At the core of DepChain lies a Byzantine consensus protocol based on the Read/Write Epoch Consensus model studied in class. Our implementation follows the version described in Algorithms 5.17 and 5.18 of the course book, with key enhancements to support the repeated agreement on sequences of values, inspired by Multi-Paxos.
+At the core of DepChain lies a Byzantine consensus protocol based on the Read/Write Epoch Consensus model studied in class. Our implementation follows the version described in Algorithms 5.17 and 5.18 of the course book.
 
 \subsection{Protocol Overview}
 
@@ -126,12 +126,6 @@ The consensus algorithm consists of the following primitives:
 
 In our implementation, consensus is triggered only by the leader. The leader collects client transactions, verifies their validity, and proposes them as a batch (a block) through the consensus algorithm. Once a decision is made, all members execute the block to update their local blockchain state.
 
-\subsection{Multi-Value Consensus Execution}
-
-Our implementation allows the leader to propose and decide on a sequence of values in the same consensus instance. This model is similar to Multi-Paxos and results in a single instance of consensus deciding all the blocks. This optimization preserves the original algorithm’s safety properties and improves performance.
-
-The \texttt{Decide} primitive, upon invocation, notifies the upper layer (i.e., the blockchain module) to apply the block and persist the new state. Each member independently executes the block and updates its local JSON-based ledger and world state.
-
 \subsection{Threat Model and Guarantees}
 
 Our protocol provides the following guarantees:
@@ -140,8 +134,6 @@ Our protocol provides the following guarantees:
     \item \textbf{Liveness}: Progress is guaranteed when the leader is correct and the network behaves fairly.
     \item \textbf{Authenticity}: Messages are signed and verified using public keys, ensuring they are not forged or tampered with.
 \end{itemize}
-
-While our current implementation does not support leader replacement, we designed the communication and consensus layers with future extensions in mind. In particular, all messages carry enough metadata and authentication to enable safe epoch transitions if needed.
 
 \section{Blockchain Implementation}
 
@@ -159,7 +151,7 @@ Transactions can be of type \texttt{TRANSFER} or smart contract \texttt{EXECUTIO
 
 \subsection{Smart Contract Execution}
 
-Smart contract execution is powered by Hyperledger Besu’s EVM implementation, as we are using it as a "sandbox". Contracts are compiled from Solidity and loaded into the sandbox at transaction execution time.
+Smart contract execution is powered by Hyperledger Besu’s EVM implementation, as we are using it as a ``sandbox''. Contracts are compiled from Solidity and loaded into the sandbox at transaction execution time.
 
 A key feature of our implementation is the ability to track and persist only the modified storage keys after contract execution. This is done by capturing the output of Besu’s EVM tracer and extracting accessed storage slots using operations \texttt{SLOAD} and \texttt{SSTORE}.
 
@@ -227,17 +219,13 @@ Each EOA account in the system maintains a nonce, used to prevent replay attacks
 
 The client library is assumed to be trusted by the application using it. This trust model excludes attacks where a compromised library attempts to mislead an honest client, as per the project guidelines.
 
-\subsection{Resilience to Byzantine Members}
-
-To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation includes unit tests and an interactive terminal-based client for live demonstrations. Further testing details, usage instructions, and walkthroughs are provided in the accompanying README file.
-
 \subsection{Data Integrity and Auditability}
 
 Each block in the chain includes a cryptographic hash of its contents and a reference to the previous block. This creates an immutable chain of blocks that can be audited and verified for tampering. State snapshots are stored on disk after every block execution, enabling rollback, verification, and recovery.
 
 \section{Testing and Evaluation}
 
-To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation includes unit tests, and an interactive terminal-based client for live demonstrations. This is better explained in the README file.
+To ensure the correctness and robustness of DepChain, we conducted extensive testing across both the consensus and blockchain execution layers. Our evaluation includes unit tests and an interactive terminal-based client for live demonstrations. Further testing details, usage instructions, and walkthroughs are provided in the accompanying README file.
 
 \section{Conclusion and Future Work}
 
@@ -251,7 +239,7 @@ While DepChain meets the project goals and offers strong dependability guarantee
 
 \begin{credits}
 \subsubsection{\ackname} 
-This work was developed as part of the course \textit{Highly Dependable Systems (SEC-2425)} at Instituto Superior Técnico, under the guidance of Prof. Paolo Romano and Prof. Miguel Matos. We thank the teaching team for the well-designed labs and support materials, including the Hyperledger Besu boilerplate and consensus algorithm references.
+This work was developed as part of the course \textit{Highly Dependable Systems (SEC-2425)} at Instituto Superior Técnico, under the guidance of Prof.\ Paolo Romano and Prof.\ Miguel Matos. We thank the teaching team for the well-designed labs and support materials, including the Hyperledger Besu boilerplate and consensus algorithm references.
 \end{credits}
 
 
