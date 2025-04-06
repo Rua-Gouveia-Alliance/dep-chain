@@ -27,6 +27,17 @@ public class Block {
         this.aborted = false;
     }
 
+    public Block(Transaction tx) {
+        this.blockHash = new byte[0];
+        this.previousBlockHash = new byte[0];
+        this.transactions = new ArrayList<>();
+        this.isNullBlock = false;
+        this.aborted = false;
+
+        this.transactions.add(tx);
+        this.hash();
+    }
+
     public Block(boolean aborted) {
         this.blockHash = new byte[0];
         this.previousBlockHash = new byte[0];

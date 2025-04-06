@@ -77,6 +77,9 @@ public class ByzantineConsensus {
         this.clear(this.written.get(0));
         this.clear(this.accepted.get(0));
         this.cc.add(new ConditionalCollect(privateKey, publicKeys, sound, N, id, leaderId, al));
+
+        for (int i = 0; i < N; ++i)
+            this.abort.get(0)[i] = false;
     }
 
     private void clear(Block[] array) {
@@ -357,6 +360,9 @@ public class ByzantineConsensus {
         this.accepted.add(new Block[N]);
         this.clear(this.written.get(this.ets + 1));
         this.clear(this.accepted.get(this.ets + 1));
+
+        for (int i = 0; i < N; ++i)
+            this.abort.get(this.ets + 1)[i] = false;
 
         this.epochstate.reset();
         return this.decided.get(this.ets++);

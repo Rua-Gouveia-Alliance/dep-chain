@@ -65,12 +65,10 @@ public class ConditionalCollect {
                     .addSigs(ByteString.copyFrom(this.sigs[i]));
         }
 
-        System.out.println("[ConditionalCollect] Sending COLLECTED");
         CollectedMessage colMessage = colMessageBuilder.build();
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.COLLECTED)
                 .setMessage(colMessage.toByteString()).setEts(ets);
         for (int i = 0; i < this.N; ++i) {
-            System.out.println("[ConditionalCollect] Sending COLLECTED to " + i);
             this.ap2p.send(i, builder);
         }
     }

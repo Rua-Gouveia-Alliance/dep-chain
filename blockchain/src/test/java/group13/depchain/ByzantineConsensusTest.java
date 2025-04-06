@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.stubbing.OngoingStubbing;
 import group13.depchain.Client.Request;
 import group13.depchain.Client.RequestType;
+import group13.depchain.Messages.CollectedMessage;
 import group13.depchain.Messages.DSMessage;
 import group13.depchain.Messages.Message;
 import group13.depchain.Messages.MessageCode;
@@ -21,106 +22,152 @@ import group13.depchain.network.StubbornLink;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import java.nio.file.NoSuchFileException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Queue;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
 import javax.crypto.SecretKey;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import com.google.protobuf.ByteString;
 
 class ByzantineConsensusTest {
 
-        void sendHonestMajorityWRITE(OngoingStubbing<Message> stub, int N) throws Exception {
-                int f = (N - 1) / 3;
-                int maj = N - f;
+    void generateABORT(Queue<Message> queue, int i, int count, int ets) throws Exception {
+        int max = i + count;
+        for (; i < max; ++i) {
+            Message packet = Message.newBuilder().setCode(MessageCode.ABORT).setEts(ets)
+                    .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
+            queue.add(packet);
+        }
+    }
 
-                // Honest messages
-                for (int i = 0; i < maj; ++i) {
-                        EpochState epochstate = new EpochState();
-                        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                                        .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
-
-                        for (WSEntry e : epochstate.getWriteset())
-                                stateMessageBuilder.addWriteset(e);
-
-                        StateMessage stateMessage = stateMessageBuilder.build();
-                        Message message = Message.newBuilder().setCode(MessageCode.STATE)
-                                        .setMessage(stateMessage.toByteString()).build();
-
-                        PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
-                        byte[] ds = Util.ds(message.toByteArray(), privateKey);
-                        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
-                                        .setDs(ByteString.copyFrom(ds)).build();
-                        Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
-                                        .setMessage(dsMessage.toByteString()).setSender(i).build();
-                        stub.thenReturn(packet);
-                }
-
-                // Byzantine messages
-                for (int i = maj; i < maj + f; ++i) {
-                        Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
-                                        .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
-                        stub.thenReturn(packet);
-                }
+    void generateCOLLECTED(Queue<Message> queue, int i, int count, int ets, List<Message> msgs,
+            byte[][] sigs) throws Exception {
+        CollectedMessage.Builder builder = CollectedMessage.newBuilder();
+        for (int j = 0; j < msgs.size(); ++j) {
+            builder.addMessages(msgs.get(i)).addSigs(ByteString.copyFrom(sigs[i]));
         }
 
-        void sendHonestMajorityDSMESSAGE(OngoingStubbing<Message> stub, int N) throws Exception {
-                int f = (N - 1) / 3;
-                int maj = N - f;
+        CollectedMessage colMessage = builder.build();
+        int max = i + count;
+        for (; i < max; ++i) {
+            Message packet = Message.newBuilder().setCode(MessageCode.COLLECTED).setEts(ets)
+                    .setMessage(colMessage.toByteString()).setSender(i).build();
+            queue.add(packet);
+        }
+    }
 
-                // Honest messages
-                for (int i = 0; i < maj; ++i) {
-                        EpochState epochstate = new EpochState();
-                        StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
-                                        .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
+    void generateWRITE(Queue<Message> queue, int i, int count, int ets, Block val)
+            throws Exception {
+        int max = i + count;
+        for (; i < max; ++i) {
+            Message packet = Message.newBuilder().setCode(MessageCode.WRITE).setEts(ets)
+                    .setMessage(val.toBlockMessage().toByteString()).setSender(i).build();
+            queue.add(packet);
+        }
+    }
 
-                        for (WSEntry e : epochstate.getWriteset())
-                                stateMessageBuilder.addWriteset(e);
+    void generateACCEPT(Queue<Message> queue, int i, int count, int ets, Block val)
+            throws Exception {
+        int max = i + count;
+        for (; i < max; ++i) {
+            Message packet = Message.newBuilder().setCode(MessageCode.ACCEPT).setEts(ets)
+                    .setMessage(val.toBlockMessage().toByteString()).setSender(i).build();
+            queue.add(packet);
+        }
+    }
 
-                        StateMessage stateMessage = stateMessageBuilder.build();
-                        Message message = Message.newBuilder().setCode(MessageCode.STATE)
-                                        .setMessage(stateMessage.toByteString()).build();
+    void generateDSMESSAGE(Queue<Message> queue, int i, int count, int ets) throws Exception {
+        int max = i + count;
+        for (; i < max; ++i) {
+            EpochState epochstate = new EpochState();
+            StateMessage.Builder stateMessageBuilder = StateMessage.newBuilder()
+                    .setVal(epochstate.getVal().toBlockMessage()).setValts(epochstate.getValts());
 
-                        PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
-                        byte[] ds = Util.ds(message.toByteArray(), privateKey);
-                        DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
-                                        .setDs(ByteString.copyFrom(ds)).build();
-                        Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
-                                        .setMessage(dsMessage.toByteString()).setSender(i).build();
-                        stub.thenReturn(packet);
-                }
+            for (WSEntry e : epochstate.getWriteset())
+                stateMessageBuilder.addWriteset(e);
 
-                // Byzantine messages
-                for (int i = maj; i < maj + f; ++i) {
-                        Message packet = Message.newBuilder().setCode(MessageCode.ABORT)
-                                        .setMessage(ByteString.copyFrom(new byte[0])).setSender(i).build();
-                        stub.thenReturn(packet);
-                }
+            StateMessage stateMessage = stateMessageBuilder.build();
+            Message message = Message.newBuilder().setCode(MessageCode.STATE)
+                    .setMessage(stateMessage.toByteString()).build();
+
+            PrivateKey privateKey = KeyManager.getMemberPrivateKey(i, "../../../resources/keys");
+            byte[] ds = Util.ds(message.toByteArray(), privateKey);
+            DSMessage dsMessage = DSMessage.newBuilder().setMessage(message)
+                    .setDs(ByteString.copyFrom(ds)).build();
+            Message packet = Message.newBuilder().setCode(MessageCode.DSMESSAGE).setEts(ets)
+                    .setMessage(dsMessage.toByteString()).setSender(i).build();
+            queue.add(packet);
+        }
+    }
+
+    void testHonestMajority(int id, int N) throws Exception {
+        int f = (N - 1) / 3;
+        int maj = N - f;
+
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
+
+        Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
+                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
+                .setSignature(ByteString.copyFrom(new byte[0])).build();
+        Transaction tx = Transaction.fromRequest(request);
+        Block proposed = new Block(tx);
+
+        Queue<Message> queue = new LinkedList<>();
+        AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
+        when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
+
+        generateDSMESSAGE(queue, 0, maj, 0);
+        generateABORT(queue, maj, f, 0);
+
+        StateMessage stateMessage =
+                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
+        Message state = Message.newBuilder().setCode(MessageCode.STATE)
+                .setMessage(stateMessage.toByteString()).setEts(0).build();
+
+        List<Message> msgs = new ArrayList<>();
+        for (int i = 0; i < N; i++)
+            msgs.add(Message.newBuilder().setCode(MessageCode.NULL).build());
+        msgs.set(0, state);
+
+        byte[][] sigs = new byte[1024][N];
+        byte[] ds = Util.ds(state.toByteArray(), KP);
+        sigs[0] = ds;
+
+        generateCOLLECTED(queue, 0, 1, 0, msgs, sigs);
+
+        generateWRITE(queue, 0, maj, 0, proposed);
+        generateABORT(queue, maj, f, 0);
+
+        generateACCEPT(queue, 0, maj, 0, proposed);
+        generateABORT(queue, maj, f, 0);
+
+        ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, KP, KUs, mockAp2p);
+        Block result = bep.run(proposed);
+        assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
+                "Proposed block and result block do not match.");
+    }
+
+    @Test
+    void testHonestMajorityLeader() throws Exception {
+        int id = 0, N = 6;
+
+        if (!Files.exists(Paths.get("../../../resources/keys"))) {
+            Files.createDirectories(Paths.get("../../../resources/keys"));
+            KeyManager.generateMemberKeys(N, "../../../resources/keys");
         }
 
-        void testHonestMajority(int id, int N) throws Exception {
-                AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
-                OngoingStubbing<Message> stub = when(mockAp2p.deliver());
-
-                sendHonestMajorityDSMESSAGE(stub, N);
-
-                PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
-                PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
-                ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, new EpochState(), KP, KUs, mockAp2p);
-                Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
-                                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
-                                .setSignature(ByteString.copyFrom(new byte[0])).build();
-                Transaction tx = Transaction.fromRequest(request);
-                Block proposed = new Block();
-                proposed.append(tx);
-                proposed.hash();
-
-                Block result = bep.run(proposed);
-                assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-                                "Proposed block and result block do not match.");
+        try {
+            KeyManager.generateMemberKeys(N, "../../../resources/keys");
+        } catch (NoSuchFileException e) {
+            e.printStackTrace();
+            System.exit(1);
         }
-
-        @Test
-        void testHonestMajorityLeader() throws Exception {
-                int id = 0, N = 6;
-                testHonestMajority(id, N);
-        }
+        testHonestMajority(id, N);
+    }
 }

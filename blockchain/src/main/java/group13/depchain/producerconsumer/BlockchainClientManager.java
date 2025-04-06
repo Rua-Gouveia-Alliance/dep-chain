@@ -21,8 +21,8 @@ public class BlockchainClientManager extends Thread {
     private final ConcurrentQueue<Block> decided;
     private final ConcurrentQueue<Transaction> pending;
 
-    public BlockchainClientManager(int clientId, BlockchainState state, ConcurrentQueue<Block> decided,
-            ConcurrentQueue<Transaction> pending) {
+    public BlockchainClientManager(int clientId, BlockchainState state,
+            ConcurrentQueue<Block> decided, ConcurrentQueue<Transaction> pending) {
         this.clientId = clientId;
         this.state = state;
         this.decided = decided;
@@ -39,7 +39,8 @@ public class BlockchainClientManager extends Thread {
             System.out.println("[ClientManager] Leader waiting for client.");
             Socket clientSocket = serverSocket.accept();
             System.out.println("[ClientManager] Client connected.");
-            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            BufferedReader in =
+                    new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             this.isActive = true;
 
@@ -68,7 +69,8 @@ public class BlockchainClientManager extends Thread {
                     Request request = Request.parseFrom(Base64.getDecoder().decode(message));
                     Transaction tx = Transaction.fromRequest(request);
 
-                    System.out.println("[ClientManager] Received request for transaction: " + tx.toString());
+                    System.out.println(
+                            "[ClientManager] Received request for transaction: " + tx.toString());
 
                     // check trasaction validity
                     if (!tx.validate(ku)) {
@@ -76,20 +78,24 @@ public class BlockchainClientManager extends Thread {
 
                         Response.Builder response = Response.newBuilder();
                         response.addEntries("Failed transaction validation.");
-                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
+                        out.println(
+                                Base64.getEncoder().encodeToString(response.build().toByteArray()));
                         continue;
                     }
 
                     // check if transaction is checkBalance
                     if (tx.getType() == RequestType.CHECK_BALANCE) {
                         Response.Builder response = Response.newBuilder();
-                        response.addEntries("Balance: " + this.state.getAccountBalance(tx.getFrom()));
-                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
+                        response.addEntries(
+                                "Balance: " + this.state.getAccountBalance(tx.getFrom()));
+                        out.println(
+                                Base64.getEncoder().encodeToString(response.build().toByteArray()));
                         continue;
                     } else if (tx.getType() == RequestType.READ_STATE) {
                         Response.Builder response = Response.newBuilder();
                         response.addEntries(this.state.toString());
-                        out.println(Base64.getEncoder().encodeToString(response.build().toByteArray()));
+                        out.println(
+                                Base64.getEncoder().encodeToString(response.build().toByteArray()));
                         continue;
                     }
 
