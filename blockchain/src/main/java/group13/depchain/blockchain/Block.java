@@ -14,8 +14,8 @@ import com.google.protobuf.ByteString;
 public class Block {
     private byte[] blockHash;
     private byte[] previousBlockHash;
+    private boolean isNullBlock;
     private final int capacity = 3;
-    private final boolean isNullBlock;
     private final boolean aborted;
     private final List<Transaction> transactions;
 
@@ -79,6 +79,7 @@ public class Block {
     public void append(Transaction tx) {
         assert !this.full() : "Appending to a full block!";
         this.transactions.add(tx);
+        this.isNullBlock = false;
     }
 
     public void setPreviousBlockHash(byte[] previousBlockHash) {

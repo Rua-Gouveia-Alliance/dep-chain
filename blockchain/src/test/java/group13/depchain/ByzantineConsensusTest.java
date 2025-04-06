@@ -197,7 +197,6 @@ class ByzantineConsensusTest {
         int N = 6;
         if (!Files.exists(Paths.get(TEST_KEYS_DIR))) {
             Files.createDirectories(Paths.get(TEST_KEYS_DIR));
-            KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
         }
         KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
     }

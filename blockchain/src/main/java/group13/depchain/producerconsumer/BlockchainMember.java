@@ -103,7 +103,7 @@ public class BlockchainMember extends Thread {
                 }
 
                 // Execute decided block
-                state.executeBlock(decided);
+                this.state.executeBlock(decided);
                 System.out.println("[BlockchainMember] Decided: " + decided);
 
                 this.decided.push(decided);

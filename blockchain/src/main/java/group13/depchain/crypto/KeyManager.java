@@ -133,4 +133,14 @@ public class KeyManager {
         return publicKey;
     }
 
+    public static PrivateKey getClientPrivateKey(int n, String dir) throws Exception {
+        Path file_kp = Paths.get(dir, "kp_" + n);
+        byte[] privateKeyBytes = Base64.getDecoder().decode(Files.readAllBytes(file_kp));
+
+        KeyFactory keyFactory = KeyFactory.getInstance("EC", "BC");
+        PKCS8EncodedKeySpec privKeySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+        PrivateKey privateKey = keyFactory.generatePrivate(privKeySpec);
+
+        return privateKey;
+    }
 }

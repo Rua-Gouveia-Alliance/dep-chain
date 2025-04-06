@@ -35,25 +35,22 @@ class BlockchainMemberTest {
     private String addr_1 = "0xb47dc6ee9aba1b31dbe92933fe5a38f4df15b8d8";
     private String totaSupplyFuncSelector = "0x18160ddd";
     private static final String TEST_KEYS_DIR = "../../../resources/keys";
-    
 
     @BeforeAll
     static void setupKeys() throws Exception {
         int N = 6;
         if (!Files.exists(Paths.get(TEST_KEYS_DIR))) {
             Files.createDirectories(Paths.get(TEST_KEYS_DIR));
-            KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
         }
-        KeyManager.generateMemberKeys(N, TEST_KEYS_DIR);
+        KeyManager.generateClientKeys(N, TEST_KEYS_DIR);
     }
-    
 
     public byte[] genSignature(int i, RequestType type, boolean isTransfer, String from, String to,
             long amount, long nonce, String payload) throws Exception {
         int type_n = type.getNumber();
         int transfer_type = isTransfer ? 0 : 1;
-        PrivateKey KP = KeyManager.getMemberPrivateKey(i, TEST_KEYS_DIR);
- 
+        PrivateKey KP = KeyManager.getClientPrivateKey(i, TEST_KEYS_DIR);
+
         String msg = type_n + from + to + amount + nonce + transfer_type + payload;
         byte[] raw = msg.getBytes();
 
@@ -87,58 +84,59 @@ class BlockchainMemberTest {
         ConcurrentQueue<Block> decided = new ConcurrentQueue<>();
         BlockchainMember member = new BlockchainMember(id, state, N, decided, null, bep);
         member.start();
+        member.join();
+
         return state;
     }
-
 
     @Test
     void testInvalidTransaction() throws Exception {
         int id = 1, N = 6;
 
         Queue<Block> queue = new LinkedList<>();
-        
+
         String hexFrom = StringUtils.leftPad(addr_0.substring(2), 64, "0");
         String hexTo = StringUtils.leftPad(addr_1.substring(2), 64, "0");
 
         // Create a block with an invalid transaction
         Block invalidBlock = new Block();
-        
+
         // Test 1: Transaction with invalid signature
-        Transaction invalidSigTx = new Transaction(RequestType.TRANSACTION, hexFrom, IST_COIN_ADDRESS,
-            0, 0, false, totaSupplyFuncSelector, new byte[]{0,1,2,3});
+        Transaction invalidSigTx = new Transaction(RequestType.TRANSACTION, hexFrom,
+                IST_COIN_ADDRESS, 0, 0, false, totaSupplyFuncSelector, new byte[] {0, 1, 2, 3});
         invalidBlock.append(invalidSigTx);
-        
-        // Test 2: Transaction with invalid nonce    
-        byte[] sig = genSignature(0, RequestType.TRANSACTION, false, hexFrom, hexTo, 0,
-            this.nonce, totaSupplyFuncSelector);
-        Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, addr_0, IST_COIN_ADDRESS,
-            0, -1, false, totaSupplyFuncSelector, sig);
+
+        // Test 2: Transaction with invalid nonce
+        byte[] sig = genSignature(0, RequestType.TRANSACTION, false, hexFrom, hexTo, 0, this.nonce,
+                totaSupplyFuncSelector);
+        Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, addr_0,
+                IST_COIN_ADDRESS, 0, -1, false, totaSupplyFuncSelector, sig);
         invalidBlock.append(invalidNonceTx);
-    
+
         // Test 3: Transaction with insufficient funds
         Transaction noFundsTx = generateISTCoinTransfer(id, hexFrom, hexTo, 1000000);
         invalidBlock.append(noFundsTx);
-        
+
         queue.add(invalidBlock);
-        
+        queue.add(null);
+
         BlockchainState result = testMember(queue, id, N);
-        
+        Block latestBlock = result.getLatestBlock();
+
         // Verify none of the invalid transactions were accepted
-        assertTrue(result.getLatestBlock().getTransactions().isEmpty(), 
-            "Invalid transactions should not be accepted into the state");
-   
+        assertTrue(latestBlock.getTransactions().isEmpty(),
+                "Invalid transactions should not be accepted into the state");
     }
 
-    /* TODO: delete?
-    @Test
-    void testInvalidTransaction() throws Exception {
-        int id = 1, N = 6;
-
-        Queue<Block> queue = new LinkedList<>();
-
-        BlockchainState result = testMember(queue, id, N);
-        // assertNotEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
-        // "Proposed block and result block do not match.");
-    }
-    */
+    /*
+     * TODO: delete?
+     *
+     * @Test void testInvalidTransaction() throws Exception { int id = 1, N = 6;
+     *
+     * Queue<Block> queue = new LinkedList<>();
+     *
+     * BlockchainState result = testMember(queue, id, N); //
+     * assertNotEquals(proposed.getBlockHashHex(), result.getBlockHashHex(), //
+     * "Proposed block and result block do not match."); }
+     */
 }
