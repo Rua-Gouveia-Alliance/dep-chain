@@ -3,6 +3,7 @@ package group13.depchain;
 import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.InputMismatchException;
 import java.util.List;
 import java.util.Scanner;
 
@@ -29,7 +30,7 @@ public class App {
             BlockchainClient client = new BlockchainClient(id, privateKey, address);
 
             Scanner scanner = new Scanner(System.in);
-            int choice;
+            int choice = -1;
 
             do {
                 System.out.println("\n=== DepChain Client ===");
@@ -40,7 +41,13 @@ public class App {
                 System.out.println("5. Exit");
                 System.out.print("Please choose an option (1-5): ");
 
-                choice = scanner.nextInt();
+                try {
+                    choice = scanner.nextInt();
+                } catch (InputMismatchException e) {
+                    scanner.nextLine();
+                    System.out.println("Invalid input.");
+                    continue;
+                }
 
                 switch (choice) {
                     case 1:
@@ -50,6 +57,8 @@ public class App {
                         handleTransfer(client, scanner);
                         break;
                     case 3:
+                        int contractChoice = -1;
+
                         System.out.println("\n=== Contract Execution ===");
                         System.out.println("1. IST Coin - Transfer");
                         System.out.println("2. IST Coin - Check Balance");
@@ -59,23 +68,38 @@ public class App {
                         System.out.println("6. Back");
                         System.out.print("Please choose an option (1-6): ");
 
-                        int contractChoice = scanner.nextInt();
-
-                        if (contractChoice == 1) {
-                            handleISTCoinTransfer(client, scanner);
-                        } else if (contractChoice == 2) {
-                            handleISTCoinCheckBalance(client, scanner);
-                        } else if (contractChoice == 3) {
-                            handleBlacklistAccount(client, scanner);
-                        } else if (contractChoice == 4) {
-                            handleWhitelistAccount(client, scanner);
-                        } else if (contractChoice == 5) {
-                            handleContractExecution(client, scanner);
-                        } else if (contractChoice == 6) {
-                            System.out.println("Going back to main menu...");
-                        } else {
+                        try {
+                            contractChoice = scanner.nextInt();
+                        } catch (InputMismatchException e) {
+                            scanner.nextLine();
                             System.out.println("Invalid input.");
                             System.out.println("Going back to main menu...");
+                            continue;
+                        }
+
+                        switch (contractChoice) {
+                            case 1:
+                                handleISTCoinTransfer(client, scanner);
+                                break;
+                            case 2:
+                                handleISTCoinCheckBalance(client, scanner);
+                                break;
+                            case 3:
+                                handleBlacklistAccount(client, scanner);
+                                break;
+                            case 4:
+                                handleWhitelistAccount(client, scanner);
+                                break;
+                            case 5:
+                                handleContractExecution(client, scanner);
+                                break;
+                            case 6:
+                                System.out.println("Going back to main menu...");
+                                break;
+                            default:
+                                System.out.println("Invalid input.");
+                                System.out.println("Going back to main menu...");
+                                break;
                         }
                         break;
                     case 4:
