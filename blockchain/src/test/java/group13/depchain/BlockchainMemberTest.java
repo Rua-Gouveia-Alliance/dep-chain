@@ -1,6 +1,5 @@
 package group13.depchain;
 
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import group13.depchain.Client.RequestType;
@@ -9,6 +8,7 @@ import group13.depchain.blockchain.BlockchainState;
 import group13.depchain.blockchain.Transaction;
 import group13.depchain.consensus.ByzantineConsensus;
 import group13.depchain.crypto.KeyManager;
+import group13.depchain.crypto.Util;
 import group13.depchain.producerconsumer.BlockchainMember;
 import group13.depchain.producerconsumer.ConcurrentQueue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -31,6 +31,7 @@ class BlockchainMemberTest {
     private String addr_1 = "0xb47dc6ee9aba1b31dbe92933fe5a38f4df15b8d8";
     private String totaSupplyFuncSelector = "0x18160ddd";
     private static final String TEST_KEYS_DIR = "../../../resources/keys";
+    private static final String TEST_STATES_DIR = "../../../resources/states";
 
     @BeforeAll
     static void setupKeys() throws Exception {
@@ -39,6 +40,11 @@ class BlockchainMemberTest {
             Files.createDirectories(Paths.get(TEST_KEYS_DIR));
         }
         KeyManager.generateClientKeys(N, TEST_KEYS_DIR);
+
+        if (!Files.exists(Paths.get(TEST_STATES_DIR))) {
+            Files.createDirectories(Paths.get(TEST_STATES_DIR));
+        }
+        BlockchainState.createGenesisBlock(TEST_STATES_DIR);
     }
 
     public byte[] genSignature(int i, RequestType type, boolean isTransfer, String from, String to,
@@ -59,21 +65,20 @@ class BlockchainMemberTest {
 
     Transaction generateISTCoinTransfer(int i, String from, String to, long amount)
             throws Exception {
-
-        String hexFrom = StringUtils.leftPad(from, 64, "0");
-        String hexTo = StringUtils.leftPad(to, 64, "0");
-        String hexAmount = StringUtils.leftPad(Long.toHexString(amount), 64, "0");
+        String hexTo = Util.addPaddingToHexString(to);
+        String hexAmount = Util.addPaddingToHexString(Long.toHexString(amount));
         String functionSignature = "0xa9059cbb"; // transfer(address,uint256)
-        String payload = functionSignature + hexTo + hexAmount;
-        byte[] sig = genSignature(i, RequestType.TRANSACTION, false, hexFrom, hexTo, amount,
-                this.nonce, payload);
-
-        return new Transaction(RequestType.TRANSACTION, hexFrom, IST_COIN_ADDRESS, 0, this.nonce++,
+        String payload = functionSignature + hexTo.substring(2) + hexAmount.substring(2);
+        byte[] sig = genSignature(i, RequestType.TRANSACTION, false, from, to, amount, this.nonce,
+                payload);
+        return new Transaction(RequestType.TRANSACTION, from, IST_COIN_ADDRESS, 0, this.nonce++,
                 false, payload, sig);
     }
 
     BlockchainState testMember(Queue<Block> queue, int id, int N) throws Exception {
-        BlockchainState state = new BlockchainState();
+        BlockchainState state = BlockchainState.load(TEST_STATES_DIR);
+        state.noSave(true);
+
         ByzantineConsensus bep = mock(ByzantineConsensus.class);
         when(bep.run(null)).thenAnswer(invocation -> queue.poll());
 
@@ -97,13 +102,17 @@ class BlockchainMemberTest {
         // Test 1: Transaction with invalid nonce
         byte[] sig = genSignature(0, RequestType.TRANSACTION, false, this.addr_0, this.addr_1, 0,
                 this.nonce++, totaSupplyFuncSelector);
-        Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, addr_0,
+        Transaction invalidNonceTx = new Transaction(RequestType.TRANSACTION, this.addr_0,
                 IST_COIN_ADDRESS, 0, -1, false, totaSupplyFuncSelector, sig);
         invalidBlock.append(invalidNonceTx);
 
         // Test 2: Transaction with insufficient funds
-        Transaction noFundsTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000);
+        Transaction noFundsTx = generateISTCoinTransfer(id, this.addr_1, this.addr_0, 1000000);
         invalidBlock.append(noFundsTx);
+
+        // Test 2: Transaction with enough funds
+        Transaction validTx = generateISTCoinTransfer(id, this.addr_0, this.addr_1, 1000000);
+        invalidBlock.append(validTx);
 
         queue.add(invalidBlock);
         queue.add(null);
@@ -114,12 +123,17 @@ class BlockchainMemberTest {
         assertNotEquals(latestBlock, null, "Latest block does not exist.");
 
         List<Transaction> transactions = latestBlock.getTransactions();
-        assertEquals(2, transactions.size(), "Block sizes do not match.");
+        assertEquals(invalidBlock.getTransactions().size(), transactions.size(),
+                "Block sizes do not match.");
 
         assertEquals("Invalid nonce.", transactions.get(0).getReturnData(),
                 "Return data does not match for the first transaction.");
-        assertEquals("Failure. Invalid amount.", transactions.get(1).getReturnData(),
+        assertNotEquals(Util.addPaddingToHexString("0x01"),
+                transactions.get(1).getReturnData().substring(6),
                 "Return data does not match for the second transaction.");
+        assertEquals(Util.addPaddingToHexString("0x01"),
+                transactions.get(2).getReturnData().substring(6),
+                "Return data does not match for the third transaction.");
     }
 
     /*

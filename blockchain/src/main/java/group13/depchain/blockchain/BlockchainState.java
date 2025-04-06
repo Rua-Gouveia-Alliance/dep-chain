@@ -24,6 +24,8 @@ public class BlockchainState {
     private long blockId = 0;
     private byte[] previousBlockHash = new byte[0];
     private Block latestBlock;
+    private boolean noSave = false;
+    private String savedFilesPath = "./blockchain/states";
 
     public BlockchainState() {
     }
@@ -103,7 +105,8 @@ public class BlockchainState {
         }
 
         block.hash();
-        save(block);
+        if (!noSave)
+            save(block);
 
         // update state
         blockId++;
@@ -154,7 +157,7 @@ public class BlockchainState {
 
     public void save(Block block) {
         ObjectMapper objectMapper = new ObjectMapper();
-        File statesDirectory = new File("./blockchain/states");
+        File statesDirectory = new File(this.savedFilesPath);
         if (!statesDirectory.exists()) {
             statesDirectory.mkdir();
         }
@@ -264,7 +267,8 @@ public class BlockchainState {
             throw new IllegalArgumentException("Invalid directory: " + dir);
         }
 
-        File[] files = statesDirectory.listFiles((d, name) -> name.startsWith("block") && name.endsWith(".json"));
+        File[] files = statesDirectory
+                .listFiles((d, name) -> name.startsWith("block") && name.endsWith(".json"));
         if (files == null || files.length == 0) {
             throw new IllegalStateException("No block files found in directory: " + dir);
         }
@@ -288,8 +292,17 @@ public class BlockchainState {
         return new File(dir, "block" + Long.toString(id) + ".json");
     }
 
-    public static void createGenesisBlock() throws IOException {
+    public void noSave(Boolean noSave) {
+        this.noSave = noSave;
+    }
+
+    public void savedFilesPath(String savedFilesPath) {
+        this.savedFilesPath = savedFilesPath;
+    }
+
+    public static void createGenesisBlock(String path) throws IOException {
         BlockchainState genesisState = new BlockchainState();
+        genesisState.savedFilesPath(path);
 
         String deployerAddress = "0x3a89a0f8dfaef2cad42e124049ee152bb01edc85";
         String istCoinAddress = "0x4321dcbA4321daed1234dcba1234000000001ced";
