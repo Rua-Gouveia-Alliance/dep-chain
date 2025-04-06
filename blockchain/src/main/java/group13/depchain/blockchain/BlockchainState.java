@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import group13.depchain.blockchain.account.BlockchainAccount;
 import group13.depchain.blockchain.account.ContractAccount;
 import group13.depchain.blockchain.account.EOAAccount;
-import group13.depchain.crypto.Util;
 
 public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
@@ -262,7 +261,7 @@ public class BlockchainState {
             state.insertAccount(account);
         }
         state.setBlockId(id + 1);
-        System.out.println();
+
         byte[] prevHashBytes = Base64.getDecoder().decode(root.get("block_hash").asText());
         state.setPreviousBlockHash(prevHashBytes);
 
