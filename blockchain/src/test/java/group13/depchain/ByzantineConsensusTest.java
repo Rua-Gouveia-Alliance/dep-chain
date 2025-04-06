@@ -218,7 +218,7 @@ class ByzantineConsensusTest {
 
         ArrayList<Block> results = testLeader(queue, id, N, proposed, rounds);
         for (int i = 0; i < rounds; ++i) {
-            assertEquals(proposed.getBlockHash(), results.get(i).getBlockHash(),
+            assertEquals(Util.bytesToHex(proposed.getBlockHash()), Util.bytesToHex(results.get(i).getBlockHash()),
                     "Proposed block and result block do not match on round " + i + ".");
         }
     }
@@ -237,7 +237,7 @@ class ByzantineConsensusTest {
         generateReorderedHonestMajorityMessages(queue, id, N, proposed);
 
         ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
-        assertEquals(proposed.getBlockHash(), result.get(0).getBlockHash(),
+        assertEquals(Util.bytesToHex(proposed.getBlockHash()), Util.bytesToHex(result.get(0).getBlockHash()),
                 "Proposed block and result block do not match.");
     }
 
