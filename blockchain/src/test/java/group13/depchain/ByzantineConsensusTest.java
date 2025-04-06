@@ -105,22 +105,11 @@ class ByzantineConsensusTest {
         }
     }
 
-    void testHonestMajority(int id, int N) throws Exception {
+    void generateHonestMajorityMessages(Queue<Message> queue, int id, int N, Block proposed)
+            throws Exception {
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
         int f = (N - 1) / 3;
         int maj = N - f;
-
-        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
-        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
-
-        Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
-                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
-                .setSignature(ByteString.copyFrom(new byte[0])).build();
-        Transaction tx = Transaction.fromRequest(request);
-        Block proposed = new Block(tx);
-
-        Queue<Message> queue = new LinkedList<>();
-        AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
-        when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
 
         generateDSMESSAGE(queue, 0, maj, 0);
         generateABORT(queue, maj, f, 0);
@@ -146,7 +135,14 @@ class ByzantineConsensusTest {
 
         generateACCEPT(queue, 0, maj, 0, proposed);
         generateABORT(queue, maj, f, 0);
+    }
 
+    void testLeader(Queue<Message> queue, int id, int N, Block proposed) throws Exception {
+        PrivateKey KP = KeyManager.getMemberPrivateKey(id, "../../../resources/keys");
+        PublicKey[] KUs = KeyManager.getMemberPublicKeys(N, "../../../resources/keys");
+
+        AuthenticatedPerfectLink mockAp2p = mock(AuthenticatedPerfectLink.class);
+        when(mockAp2p.deliver()).thenAnswer(invocation -> queue.poll());
         ByzantineConsensus bep = new ByzantineConsensus(id, 0, N, 0, KP, KUs, mockAp2p);
         Block result = bep.run(proposed);
         assertEquals(proposed.getBlockHashHex(), result.getBlockHashHex(),
@@ -161,13 +157,16 @@ class ByzantineConsensusTest {
             Files.createDirectories(Paths.get("../../../resources/keys"));
             KeyManager.generateMemberKeys(N, "../../../resources/keys");
         }
+        KeyManager.generateMemberKeys(N, "../../../resources/keys");
 
-        try {
-            KeyManager.generateMemberKeys(N, "../../../resources/keys");
-        } catch (NoSuchFileException e) {
-            e.printStackTrace();
-            System.exit(1);
-        }
-        testHonestMajority(id, N);
+        Request request = Request.newBuilder().setType(RequestType.READ_STATE).setFrom("").setTo("")
+                .setAmount(0).setNonce(0).setIsTransfer(false).setPayload("")
+                .setSignature(ByteString.copyFrom(new byte[0])).build();
+        Transaction tx = Transaction.fromRequest(request);
+        Block proposed = new Block(tx);
+
+        Queue<Message> queue = new LinkedList<>();
+        generateHonestMajorityMessages(queue, id, N, proposed);
+        testLeader(queue, id, N, proposed);
     }
 }
