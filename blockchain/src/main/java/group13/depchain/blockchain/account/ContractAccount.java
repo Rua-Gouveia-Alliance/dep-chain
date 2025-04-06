@@ -67,6 +67,7 @@ public class ContractAccount extends BlockchainAccount {
         SimpleWorld world = new SimpleWorld();
         Bytes code = Bytes.fromHexString(contractCode);
         Bytes callData = Bytes.fromHexString(transaction.getPayload());
+        System.out.println("[executeTransaction] Call data: " + callData.toHexString());
 
         Address from = Address.fromHexString(transaction.getFrom());
         Address to = Address.fromHexString(this.address);
@@ -101,6 +102,8 @@ public class ContractAccount extends BlockchainAccount {
         executor.commitWorldState();
         executor.execute();
 
+        System.out.println(output.toString());
+
         // update storage
         contractAccount = (MutableAccount) world.get(to);
         Set<String> keys = extractStorageSlots(output);
@@ -116,7 +119,7 @@ public class ContractAccount extends BlockchainAccount {
 
         // update balances
         this.balance = contractAccount.getBalance().toLong();
-        state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount()); // TODO rollback if this fails
+        state.getAccount(transaction.getFrom()).withdraw(transaction.getAmount());
 
         String returnData = extractReturnData(output);
         System.out.println("[executeTransaction] Contract execution return: " + returnData);

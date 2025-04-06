@@ -60,9 +60,9 @@ public class App {
                         int contractChoice = scanner.nextInt();
 
                         if (contractChoice == 1) {
-                            handleISTCoinTransfer(client, scanner); // TODO
+                            handleISTCoinTransfer(client, scanner);
                         } else if (contractChoice == 2) {
-                            handleISTCoinCheckBalance(client, scanner); // TODO
+                            handleISTCoinCheckBalance(client, scanner);
                         } else if (contractChoice == 3) {
                             handleContractExecution(client, scanner);
                         } else if (contractChoice == 4) {

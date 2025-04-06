@@ -52,7 +52,7 @@ public class Transaction {
 
     public boolean validateFormat() {
         return nonce >= 0 && amount >= 0 && Util.isValidHexString(from) && Util.isValidHexString(to)
-                && Util.isValidHexString(payload);
+                && (Util.isValidHexString(payload) || payload == "");
     }
 
     public boolean validate(PublicKey senderPublicKey) throws Exception {
