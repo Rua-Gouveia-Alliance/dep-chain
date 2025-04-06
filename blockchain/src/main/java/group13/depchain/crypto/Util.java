@@ -35,7 +35,7 @@ public class Util {
     }
 
     public static byte[] ds(byte[] msg, PrivateKey privateKey) throws Exception {
-        Signature signer = Signature.getInstance("Ed25519");
+        Signature signer = Signature.getInstance("SHA512withRSA");
         signer.initSign(privateKey);
         signer.update(msg);
         return signer.sign();
@@ -43,7 +43,7 @@ public class Util {
 
     public static boolean verifyDS(byte[] msg, byte[] signature, PublicKey publicKey)
             throws Exception {
-        Signature verifier = Signature.getInstance("Ed25519");
+        Signature verifier = Signature.getInstance("SHA512withRSA");
         verifier.initVerify(publicKey);
         verifier.update(msg);
         return verifier.verify(signature);
@@ -60,7 +60,8 @@ public class Util {
         }
     }
 
-    public static boolean verifyTransactionDS(byte[] msg, byte[] signature, PublicKey publicKey) throws Exception {
+    public static boolean verifyTransactionDS(byte[] msg, byte[] signature, PublicKey publicKey)
+            throws Exception {
         Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", "BC");
         ecdsaVerify.initVerify(publicKey);
         ecdsaVerify.update(msg);

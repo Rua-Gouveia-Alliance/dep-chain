@@ -30,8 +30,8 @@ class BlockchainMemberTest {
     private String addr_0 = "0x3a89a0f8dfaef2cad42e124049ee152bb01edc85";
     private String addr_1 = "0xb47dc6ee9aba1b31dbe92933fe5a38f4df15b8d8";
     private String totaSupplyFuncSelector = "0x18160ddd";
-    private static final String TEST_KEYS_DIR = "../../../resources/keys";
-    private static final String TEST_STATES_DIR = "../../../resources/states";
+    private static final String TEST_KEYS_DIR = "./src/test/resources/keys";
+    private static final String TEST_STATES_DIR = "./src/test/resources/states";
 
     @BeforeAll
     static void setupKeys() throws Exception {

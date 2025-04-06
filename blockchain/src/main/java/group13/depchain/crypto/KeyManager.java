@@ -14,13 +14,13 @@ import java.security.spec.ECGenParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
-
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.tuweni.crypto.sodium.DiffieHelman.Secret;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 public class KeyManager {
@@ -30,7 +30,8 @@ public class KeyManager {
     }
 
     public static void generateMemberKeyPair(Path file_ku, Path file_kp) throws Exception {
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("Ed25519");
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(4096);
         KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
         String privateKey = Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded());
@@ -39,28 +40,46 @@ public class KeyManager {
         Files.write(file_ku, publicKey.getBytes());
         Files.write(file_kp, privateKey.getBytes());
     }
-    
+
     public static SecretKey generateSecretKey() throws Exception {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
         keyGenerator.init(256);
         SecretKey secretKey = keyGenerator.generateKey();
-
         return secretKey;
     }
 
-    public static byte[] encryptSecretKey(SecretKey SK, PublicKey PK) throws Exception{
-        byte[] SKBytes = SK.getEncoded();
-
-        Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
-        cipher.init(Cipher.ENCRYPT_MODE, PK);
-        return cipher.doFinal(SKBytes);
+    public static String encryptSecretKey(SecretKey key, PrivateKey senderKey,
+            PublicKey receiverKey) throws Exception {
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, senderKey);
+        byte[] encryptedKey = cipher.doFinal(key.getEncoded());
+        byte[] ds = Util.ds(encryptedKey, senderKey);
+        String packet = Base64.getEncoder().encodeToString(encryptedKey) + "\n"
+                + Base64.getEncoder().encodeToString(ds);
+        return packet;
     }
 
-    public static SecretKey decryptSecretKey(byte[] encrypted, PrivateKey PK) throws Exception{
-        Cipher cipher = Cipher.getInstance("ECIESwithAES-CBC", "BC");
-        cipher.init(Cipher.DECRYPT_MODE, PK);
-        byte[] decryptedKeyBytes = cipher.doFinal(encrypted);
-        
+    public static SecretKey decryptSecretKey(String encrypted, PrivateKey receiverKey,
+            PublicKey senderKey) throws Exception {
+        String[] lines = encrypted.split("\n");
+        if (lines.length != 2) {
+            return null;
+        }
+
+        byte[] key = Base64.getDecoder().decode(lines[0]);
+        byte[] ds = Base64.getDecoder().decode(lines[1]);
+        if (!Util.verifyDS(key, ds, senderKey)) {
+            return null;
+        }
+
+        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        cipher.init(Cipher.DECRYPT_MODE, receiverKey);
+        byte[] decryptedKeyBytes;
+        try {
+            decryptedKeyBytes = cipher.doFinal(key);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            return null;
+        }
         return new SecretKeySpec(decryptedKeyBytes, "AES");
     }
 
@@ -69,9 +88,9 @@ public class KeyManager {
         return new SecretKeySpec(keyBytes, "HmacSHA256");
     }
 
-    public static SecretKey[] generateSecretKeys(int N) throws Exception {
+    public static SecretKey[] generateSecretKeys(int id, int N) throws Exception {
         SecretKey[] Ks = new SecretKey[N];
-        for (int i = 0; i < N; i++) {
+        for (int i = id; i > -1; --i) {
             Ks[i] = generateSecretKey();
         }
         return Ks;
@@ -91,14 +110,14 @@ public class KeyManager {
     public static PrivateKey loadPrivateKey(Path file) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519");
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         return keyFactory.generatePrivate(spec);
     }
 
     public static PublicKey loadPublicKey(Path file) throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(Files.readString(file).trim());
         X509EncodedKeySpec spec = new X509EncodedKeySpec(keyBytes);
-        KeyFactory keyFactory = KeyFactory.getInstance("Ed25519");
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         return keyFactory.generatePublic(spec);
     }
 
@@ -120,7 +139,8 @@ public class KeyManager {
         return KUs;
     }
 
-    public static void generateClientKeyPair(Path file_ku, Path file_kp, Path file_addr) throws Exception {
+    public static void generateClientKeyPair(Path file_ku, Path file_kp, Path file_addr)
+            throws Exception {
         // This is based on how Bitcoin and Ethereum generate their keys using secp256k1
         KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("EC", "BC");
         ECGenParameterSpec ecSpec = new ECGenParameterSpec("secp256k1");
@@ -141,7 +161,8 @@ public class KeyManager {
 
     public static void generateClientKeys(int N, String dir) throws Exception {
         for (int i = 0; i < N; i++) {
-            generateClientKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i), Paths.get(dir, "addr_" + i));
+            generateClientKeyPair(Paths.get(dir, "ku_" + i), Paths.get(dir, "kp_" + i),
+                    Paths.get(dir, "addr_" + i));
         }
     }
 

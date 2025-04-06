@@ -1,7 +1,10 @@
 package group13.depchain.producerconsumer;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.PrivateKey;
@@ -64,53 +67,51 @@ public class BlockchainMember extends Thread {
 
             Block proposed = null;
             if (this.bep == null) {
-                SecretKey SK = KeyManager.generateSecretKey();
                 PrivateKey KP = KeyManager.getMemberPrivateKey(this.id, "./keys");
                 PublicKey[] KUs = KeyManager.getMemberPublicKeys(this.N, "./keys");
+                SecretKey[] SKs = KeyManager.generateSecretKeys(this.id, this.N);
 
                 // Encrypt SK with each member's KU and send it to each member
-                for (int i = 0; i < N; i++) {
-                    if (this.id == i)
-                        continue;
-
-                    byte[] encryptedSK = KeyManager.encryptSecretKey(SK, KUs[i]);
-                    // Build and send the message
-                    try (Socket socket = new Socket("localhost", 11000+i);
-                    ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream())) {
-                        
-                        out.writeObject(encryptedSK);
-                        System.out.println("[BlockchainMember] Sent encrypted secret key to process: " + i);
+                for (int i = this.id - 1; i > -1; --i) {
+                    String packet = KeyManager.encryptSecretKey(SKs[i], KP, KUs[i]);
+                    try (Socket socket = new Socket("localhost", 11000 + i);
+                            PrintWriter out = new PrintWriter(socket.getOutputStream(), true)) {
+                        out.println(packet);
+                        System.out.println(
+                                "[BlockchainMember] Sent encrypted secret key to process: " + i);
                     }
                 }
 
-                SecretKey[] SKs = new SecretKey[N];
-                SKs[this.id] = SK;
-                int collected = 0;
+                try (ServerSocket socket = new ServerSocket(11000 + this.id);
+                        Socket clientSocket = socket.accept();
+                        BufferedReader in = new BufferedReader(
+                                new InputStreamReader(clientSocket.getInputStream()))) {
 
-                ServerSocket serverSocket = new ServerSocket(11000+this.id);
-                while(collected < N) {
-                    if (collected == this.id)
-                        continue;
-                    
-                    Socket clientSocket = serverSocket.accept();
-                    ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-                    byte[] encryptedKey = (byte[]) in.readObject();
-                    
-                    if (SKs[collected] != null) {
-                        continue;
+                    int collected = 0;
+                    while (collected < this.N - this.id) {
+                        String key = in.readLine();
+                        if (key == null) {
+                            System.out.println("[BlockchainMember] Received null");
+                            continue;
+                        }
+
+                        for (int i = this.id - 1; i > -1; --i) {
+                            SecretKey k = KeyManager.decryptSecretKey(key, KP, KUs[i]);
+                            if (k != null) {
+                                if (SKs[i] == null) {
+                                    System.out.println(
+                                            "[BlockchainMember] Received key from process: " + i);
+                                    ++collected;
+                                    SKs[i] = k;
+                                }
+                                break;
+                            }
+                        }
                     }
-
-                    // Decrypt and store the key
-                    SKs[collected] = KeyManager.decryptSecretKey(encryptedKey, KP);
-                    collected++;
-
                 }
-                serverSocket.close();
 
-                
-                // SecretKey[] SKs = al.collectSecretKeys();
-                AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
-                
+                AuthenticatedPerfectLink al =
+                        new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
                 this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             }
 
