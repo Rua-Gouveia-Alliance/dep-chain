@@ -19,6 +19,8 @@ mvn -pl blockchain web3j:generate-sources
 
 The resulting bytecode will be stored at `blockchain/target/generated-sources/solidity`.
 
+**Note 0**: In addition to the IST Coin/Blacklist contract, we also created a contract that only keeps track of an integer and has functions to increment it and return its value, which is useful for testing purposes. This contract is also included in the genesis block. Although we didn't include straightforward options in the TUI to test this contract, you can use the option for custom contract execution and manually enter the address of this contract and the calldata for the function you want to execute.
+
 ### States
 
 The states of the blockchain are stored at `blockchain/states`. It comes with the genesis block `block0.json`, but as each block is executed, more states will be added.

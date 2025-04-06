@@ -34,9 +34,9 @@ public class App {
             do {
                 System.out.println("\n=== DepChain Client ===");
                 System.out.println("1. Check Current Balance");
-                System.out.println("2. Execute Transaction");
-                System.out.println("3. Execute Smart Contract");
-                System.out.println("4. Current Read Blockchain State");
+                System.out.println("2. Dep Coin Transfer");
+                System.out.println("3. Smart Contract Execution");
+                System.out.println("4. Read Current Blockchain State");
                 System.out.println("5. Exit");
                 System.out.print("Please choose an option (1-5): ");
 
@@ -53,11 +53,11 @@ public class App {
                         System.out.println("\n=== Contract Execution ===");
                         System.out.println("1. IST Coin - Transfer");
                         System.out.println("2. IST Coin - Check Balance");
-                        System.out.println("3. IST Coin - Blacklist account");
-                        System.out.println("4. IST Coin - Remove account from blacklist");
+                        System.out.println("3. IST Coin Blacklist - Blacklist Account");
+                        System.out.println("4. IST Coin Blacklist - Remove Account From Blacklist");
                         System.out.println("5. Custom");
                         System.out.println("6. Back");
-                        System.out.print("Please choose an option (1-5): ");
+                        System.out.print("Please choose an option (1-6): ");
 
                         int contractChoice = scanner.nextInt();
 
