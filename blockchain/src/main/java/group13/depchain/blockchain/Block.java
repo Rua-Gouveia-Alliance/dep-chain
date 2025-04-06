@@ -7,8 +7,6 @@ import java.util.Base64;
 import group13.depchain.Messages.*;
 import group13.depchain.crypto.Util;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;
 
 public class Block {
@@ -90,36 +88,17 @@ public class Block {
         return this.transactions;
     }
 
-    @JsonIgnore
     public byte[] getPreviousBlockHash() {
         return this.previousBlockHash;
     }
 
-    @JsonProperty("previousBlockHash")
-    public String getPreviousBlockHashHex() {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : this.previousBlockHash) {
-            sb.append(String.format("%02x", b));
-        }
-        return "0x" + sb.toString();
-    }
-
-    @JsonIgnore
     public byte[] getBlockHash() {
         return this.blockHash;
     }
 
-    @JsonProperty("blockHash")
-    public String getBlockHashHex() {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : this.blockHash) {
-            sb.append(String.format("%02x", b));
-        }
-        return "0x" + sb.toString();
-    }
-
     public void hash() {
-        this.blockHash = Util.hash(String.join("", this.transactions.toString()));
+        this.blockHash = Util.hash(String.join("", this.transactions.toString(),
+                Util.bytesToHex(this.previousBlockHash)));
     }
 
     public boolean eq(Block other) {
@@ -154,16 +133,15 @@ public class Block {
             return false;
 
         String prevHash = Base64.getEncoder().encodeToString(this.previousBlockHash);
-        String otherPrevHash =
-                Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
+        String otherPrevHash = Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
         return Objects.equals(prevHash, otherPrevHash);
     }
 
     public BlockMessage toBlockMessage() {
-        BlockMessage.Builder messageBuilder =
-                BlockMessage.newBuilder().setBlockHash(ByteString.copyFrom(this.blockHash))
-                        .setPreviousBlockHash(ByteString.copyFrom(this.previousBlockHash))
-                        .setIsNullBlock(this.isNullBlock);
+        BlockMessage.Builder messageBuilder = BlockMessage.newBuilder()
+                .setBlockHash(ByteString.copyFrom(this.blockHash))
+                .setPreviousBlockHash(ByteString.copyFrom(this.previousBlockHash))
+                .setIsNullBlock(this.isNullBlock);
         for (Transaction tx : this.transactions) {
             TransactionMessage txMsg = Transaction.toTransactionMessage(tx);
             messageBuilder.addTransactions(txMsg);
@@ -173,16 +151,16 @@ public class Block {
 
     @Override
     public String toString() {
-        String str = "{ null: " + this.isNullBlock + ", aborted: " + this.aborted + ", txs: [ ";
-        for (Transaction tx : this.transactions)
-            str += tx.toString() + " ";
-        str += "]";
-        if (!this.isNullBlock) {
-            str += ", block_hash: " + Base64.getEncoder().encodeToString(this.blockHash) + " , ";
-            str += "previous_block_hash: ";
-            str += Base64.getEncoder().encodeToString(this.previousBlockHash);
+        StringBuilder sb = new StringBuilder();
+        sb.append("Block{");
+        sb.append("blockHash=").append(Util.bytesToHex(this.blockHash));
+        sb.append(", previousBlockHash=").append(Util.bytesToHex(this.previousBlockHash));
+        sb.append(", isNullBlock=").append(this.isNullBlock);
+        sb.append(", transactions=[");
+        for (Transaction tx : this.transactions) {
+            sb.append(tx.toString()).append(", ");
         }
-        str += " }";
-        return str;
+        sb.append("]}");
+        return sb.toString();
     }
 }

@@ -52,7 +52,7 @@ public class Transaction {
 
     public boolean validateFormat() {
         return nonce >= 0 && amount >= 0 && Util.isValidHexString(from) && Util.isValidHexString(to)
-                && (Util.isValidHexString(payload) || payload == "");
+                && (Util.isValidHexString(payload) && from.length() == 42 && to.length() == 42 || payload == "");
     }
 
     public boolean validate(PublicKey senderPublicKey) throws Exception {
@@ -112,24 +112,6 @@ public class Transaction {
         return "0x" + sb.toString();
     }
 
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : signature)
-            sb.append(String.format("%02x", b));
-
-        return "Transaction{" +
-                "from='" + from + '\'' +
-                ", to='" + to + '\'' +
-                ", amount=" + amount +
-                ", nonce=" + nonce +
-                ", isTranfer=" + isTransfer +
-                ", payload='" + payload + '\'' +
-                ", signature=" + sb.toString() +
-                ", returnData='" + returnData + '\'' +
-                '}';
-    }
-
     public static Transaction fromTransactionMessage(TransactionMessage request) {
         return new Transaction(
                 RequestType.TRANSACTION,
@@ -165,4 +147,18 @@ public class Transaction {
                 request.getSignature().toByteArray());
     }
 
+    @Override
+    public String toString() {
+        return "Transaction{" +
+                "from='" + from + '\'' +
+                ", to='" + to + '\'' +
+                ", amount=" + amount +
+                ", nonce=" + nonce +
+                ", isTransfer=" + isTransfer +
+                ", payload='" + payload + '\'' +
+                ", signature='" + Util.bytesToHex(signature) + '\'' +
+                ", type=" + type +
+                ", returnData='" + returnData + '\'' +
+                '}';
+    }
 }

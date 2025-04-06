@@ -2,7 +2,6 @@ package group13.depchain.blockchain;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Base64;
 import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -12,14 +11,13 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import group13.depchain.blockchain.account.BlockchainAccount;
 import group13.depchain.blockchain.account.ContractAccount;
 import group13.depchain.blockchain.account.EOAAccount;
+import group13.depchain.crypto.Util;
 
 public class BlockchainState {
     private Dictionary<String, BlockchainAccount> accounts = new Hashtable<>();
@@ -42,7 +40,6 @@ public class BlockchainState {
 
     public void executeBlock(Block block) {
         block.setPreviousBlockHash(previousBlockHash);
-        block.hash();
 
         for (Transaction tx : block.getTransactions()) {
             boolean status;
@@ -105,6 +102,7 @@ public class BlockchainState {
             }
         }
 
+        block.hash();
         save(block);
 
         // update state
@@ -130,18 +128,8 @@ public class BlockchainState {
         this.previousBlockHash = previousBlockHash;
     }
 
-    @JsonIgnore
     public byte[] getPreviousBlockHash() {
         return this.previousBlockHash;
-    }
-
-    @JsonProperty("previousBlockHash")
-    public String getPreviousBlockHashHex() {
-        StringBuilder sb = new StringBuilder();
-        for (byte b : this.previousBlockHash) {
-            sb.append(String.format("%02x", b));
-        }
-        return "0x" + sb.toString();
     }
 
     public void insertAccount(BlockchainAccount account) {
@@ -174,8 +162,8 @@ public class BlockchainState {
         File blockJSON = new File(statesDirectory, "block" + Long.toString(blockId) + ".json");
         HashMap<String, Object> blockMap = new HashMap<>();
 
-        blockMap.put("block_hash", block.getBlockHash());
-        blockMap.put("previous_block_hash", previousBlockHash);
+        blockMap.put("block_hash", Util.bytesToHex(block.getBlockHash()));
+        blockMap.put("previous_block_hash", Util.bytesToHex(previousBlockHash));
 
         blockMap.put("transactions", block.getTransactions());
 
@@ -262,7 +250,7 @@ public class BlockchainState {
         }
         state.setBlockId(id + 1);
 
-        byte[] prevHashBytes = Base64.getDecoder().decode(root.get("block_hash").asText());
+        byte[] prevHashBytes = Util.hexStringToByteArray(root.get("block_hash").asText());
         state.setPreviousBlockHash(prevHashBytes);
 
         // debug
@@ -338,12 +326,18 @@ public class BlockchainState {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("BlockchainState:\n");
+        sb.append("BlockchainState{\n");
+        sb.append("  blockId=").append(blockId).append(",\n");
+        sb.append("  previousBlockHash=").append(Util.bytesToHex(previousBlockHash)).append(",\n");
+        sb.append("  accounts={\n");
+
         for (Enumeration<String> keys = accounts.keys(); keys.hasMoreElements();) {
             String key = keys.nextElement();
             BlockchainAccount account = accounts.get(key);
-            sb.append(account.toString()).append("\n");
+            sb.append("    ").append(key).append(": ").append(account.toString()).append(",\n");
         }
+        sb.append("  }\n");
+        sb.append("}\n");
         return sb.toString();
     }
 

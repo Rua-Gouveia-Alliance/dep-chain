@@ -112,8 +112,7 @@ class ByzantineConsensusTest {
         generateDSMESSAGE(queue, 0, maj, 0, ets);
         generateABORT(queue, maj, f, ets);
 
-        StateMessage stateMessage =
-                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(ets).build();
+        StateMessage stateMessage = StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(ets).build();
         Message state = Message.newBuilder().setCode(MessageCode.STATE)
                 .setMessage(stateMessage.toByteString()).setEts(ets).build();
 
@@ -141,8 +140,7 @@ class ByzantineConsensusTest {
         int f = (N - 1) / 3;
         int maj = N - f;
 
-        StateMessage stateMessage =
-                StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
+        StateMessage stateMessage = StateMessage.newBuilder().setVal(proposed.toBlockMessage()).setValts(0).build();
         Message state = Message.newBuilder().setCode(MessageCode.STATE)
                 .setMessage(stateMessage.toByteString()).setEts(0).build();
 
@@ -220,7 +218,7 @@ class ByzantineConsensusTest {
 
         ArrayList<Block> results = testLeader(queue, id, N, proposed, rounds);
         for (int i = 0; i < rounds; ++i) {
-            assertEquals(proposed.getBlockHashHex(), results.get(i).getBlockHashHex(),
+            assertEquals(proposed.getBlockHash(), results.get(i).getBlockHash(),
                     "Proposed block and result block do not match on round " + i + ".");
         }
     }
@@ -239,7 +237,7 @@ class ByzantineConsensusTest {
         generateReorderedHonestMajorityMessages(queue, id, N, proposed);
 
         ArrayList<Block> result = testLeader(queue, id, N, proposed, 1);
-        assertEquals(proposed.getBlockHashHex(), result.get(0).getBlockHashHex(),
+        assertEquals(proposed.getBlockHash(), result.get(0).getBlockHash(),
                 "Proposed block and result block do not match.");
     }
 

@@ -213,14 +213,12 @@ public class ContractAccount extends BlockchainAccount {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ContractAccount{");
-        sb.append("address='").append(address).append('\'');
-        sb.append(", balance=").append(balance);
-        sb.append(", contractCode='").append(contractCode).append('\'');
-        sb.append(", storage=").append(storage);
-        sb.append('}');
-        return sb.toString();
+        return "ContractAccount{" +
+                "address='" + address + '\'' +
+                ", balance=" + balance +
+                ", contractCode='" + contractCode + '\'' +
+                ", storage=" + storage +
+                '}';
     }
 
 }

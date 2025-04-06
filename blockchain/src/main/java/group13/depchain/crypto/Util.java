@@ -129,4 +129,12 @@ public class Util {
         return "0x" + temp;
     }
 
+    public static String bytesToHex(byte[] previousBlockHash) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : previousBlockHash) {
+            sb.append(String.format("%02x", b));
+        }
+        return "0x" + sb.toString();
+    }
+
 }
