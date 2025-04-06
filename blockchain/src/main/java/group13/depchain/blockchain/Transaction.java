@@ -2,8 +2,6 @@ package group13.depchain.blockchain;
 
 import java.security.PublicKey;
 
-import org.apache.tuweni.bytes.Bytes;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.protobuf.ByteString;

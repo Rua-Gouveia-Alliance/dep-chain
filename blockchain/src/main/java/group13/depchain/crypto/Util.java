@@ -14,6 +14,7 @@ import java.util.Arrays;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.digest.Keccak;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
@@ -117,6 +118,15 @@ public class Util {
 
     public static boolean isValidHexString(String input) {
         return input != null && input.matches("^0x?[0-9a-fA-F]+$");
+    }
+
+    public static String addPaddingToHexString(String s) {
+        String temp = s;
+        if (s.startsWith("0x"))
+            temp = s.substring(2);
+
+        temp = StringUtils.leftPad(temp, 64, "0");
+        return "0x" + temp;
     }
 
 }
