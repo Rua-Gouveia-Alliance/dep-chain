@@ -33,7 +33,7 @@ public class App {
     }
 
     public static void main(String[] args) throws Exception {
-        int id = Integer.valueOf(args[0]), N = 6;
+        int id = Integer.valueOf(args[0]), N = 5;
         int clientN = Integer.valueOf(args[1]);
         ArrayList<BlockchainClientManager> clients = new ArrayList<>();
         ConcurrentQueue<Block> decided = new ConcurrentQueue<>();

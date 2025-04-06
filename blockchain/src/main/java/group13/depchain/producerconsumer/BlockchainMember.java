@@ -81,13 +81,15 @@ public class BlockchainMember extends Thread {
                             "[BlockchainMember] Sent encrypted secret key to process: " + i);
                 }
 
-                ServerSocket socket = new ServerSocket(11000 + this.id);
-                Socket clientSocket = socket.accept();
-                BufferedReader in =
-                        new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                ServerSocket socket;
+                Socket clientSocket;
+                BufferedReader in;
 
                 int collected = 0;
                 while (collected < this.N - this.id - 1) {
+                    socket = new ServerSocket(11000 + this.id);
+                    clientSocket = socket.accept();
+                    in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
                     String key = in.readLine();
                     if (key == null)
                         continue;
@@ -104,14 +106,13 @@ public class BlockchainMember extends Thread {
                             break;
                         }
                     }
+                    socket.close();
                 }
 
-                socket.close();
                 for (Socket s : sockets)
                     s.close();
 
-                AuthenticatedPerfectLink al =
-                        new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
+                AuthenticatedPerfectLink al = new AuthenticatedPerfectLink(5000 + this.id, this.id, SKs, map);
                 this.bep = new ByzantineConsensus(this.id, 0, this.N, 0, KP, KUs, al);
             }
 
