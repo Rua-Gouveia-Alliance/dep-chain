@@ -90,6 +90,9 @@ public class KeyManager {
 
     public static SecretKey[] generateSecretKeys(int id, int N) throws Exception {
         SecretKey[] Ks = new SecretKey[N];
+        for (int i = N; i > id; --i) {
+            Ks[i] = null;
+        }
         for (int i = id; i > -1; --i) {
             Ks[i] = generateSecretKey();
         }
