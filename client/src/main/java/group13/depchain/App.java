@@ -53,8 +53,10 @@ public class App {
                         System.out.println("\n=== Contract Execution ===");
                         System.out.println("1. IST Coin - Transfer");
                         System.out.println("2. IST Coin - Check Balance");
-                        System.out.println("3. Custom");
-                        System.out.println("4. Back");
+                        System.out.println("3. IST Coin - Blacklist account");
+                        System.out.println("4. IST Coin - Remove account from blacklist");
+                        System.out.println("5. Custom");
+                        System.out.println("6. Back");
                         System.out.print("Please choose an option (1-5): ");
 
                         int contractChoice = scanner.nextInt();
@@ -64,8 +66,12 @@ public class App {
                         } else if (contractChoice == 2) {
                             handleISTCoinCheckBalance(client, scanner);
                         } else if (contractChoice == 3) {
-                            handleContractExecution(client, scanner);
+                            handleBlacklistAccount(client, scanner);
                         } else if (contractChoice == 4) {
+                            handleWhitelistAccount(client, scanner);
+                        } else if (contractChoice == 5) {
+                            handleContractExecution(client, scanner);
+                        } else if (contractChoice == 6) {
                             System.out.println("Going back to main menu...");
                         } else {
                             System.out.println("Invalid input.");
@@ -90,6 +96,46 @@ public class App {
             e.printStackTrace();
         }
 
+    }
+
+    private static void handleBlacklistAccount(BlockchainClient client, Scanner scanner)
+            throws IOException {
+
+        System.out.print("Enter account to blacklist: ");
+        String addr = scanner.next();
+        if (addr.startsWith("0x"))
+            addr = addr.substring(2);
+
+        String functionSignature = "0x44337ea1"; // addToBlacklist(address)
+        String hexAddr = StringUtils.leftPad(addr, 64, "0");
+        String payload = functionSignature + hexAddr;
+        Request request = client.createTransaction(false, IST_COIN_ADDRESS, 0, payload);
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
+        }
+    }
+
+    private static void handleWhitelistAccount(BlockchainClient client, Scanner scanner)
+            throws IOException {
+
+        System.out.print("Enter account to remove from blacklist: ");
+        String addr = scanner.next();
+        if (addr.startsWith("0x"))
+            addr = addr.substring(2);
+
+        String functionSignature = "537df3b6"; // removeFromBlacklist(address)
+        String hexAddr = StringUtils.leftPad(addr, 64, "0");
+        String payload = functionSignature + hexAddr;
+        Request request = client.createTransaction(false, IST_COIN_ADDRESS, 0, payload);
+        client.sendTransaction(request);
+
+        List<String> status = client.receiveStatus();
+        for (String s : status) {
+            System.out.println(s);
+        }
     }
 
     private static void handleISTCoinCheckBalance(BlockchainClient client, Scanner scanner)
