@@ -202,6 +202,25 @@ public class ByzantineConsensus {
         return true;
     }
 
+    private void deliverDS(Message received) throws Exception {
+        // Already collected or refers to an older epoch, ignore
+        if (this.cc.get(this.ets).getCollected() || this.ets != received.getEts())
+            return;
+
+        System.out.println("[ByzantineConsensus] Delivered DSMESSAGE");
+
+        if (!this.cc.get(this.ets).deliverDS(received)) {
+            // Conditional collect cannot continue, abort this epoch
+            System.out.println("[ByzantineConsensus] ConditionalCollect cannot continue.");
+            Message.Builder builder = Message.newBuilder().setCode(MessageCode.ABORT)
+                    .setEts(this.ets).setMessage(ByteString.copyFrom(new byte[0]));
+            for (int i = 0; i < this.N; ++i)
+                if (i != this.id)
+                    al.send(i, builder);
+            this.decided.set(this.ets, new Block(true));
+        }
+    }
+
     private void deliverCOLLECTED(Message received) throws Exception {
         // Already collected or refers to an older epoch, ignore
         if (this.cc.get(this.ets).getCollected() || this.ets != received.getEts())
@@ -255,8 +274,9 @@ public class ByzantineConsensus {
             Message.Builder builder = Message.newBuilder().setCode(MessageCode.ABORT)
                     .setEts(this.ets).setMessage(ByteString.copyFrom(new byte[0]));
             for (int i = 0; i < this.N; ++i)
-                al.send(i, builder);
-            this.abort.get(this.ets)[this.id] = true;
+                if (i != this.id)
+                    al.send(i, builder);
+            this.decided.set(this.ets, new Block(true));
         }
     }
 
@@ -329,7 +349,7 @@ public class ByzantineConsensus {
 
         MessageCode code = received.getCode();
         if (code == MessageCode.DSMESSAGE) {
-            this.cc.get(ets).deliverDS(received);
+            this.deliverDS(received);
         } else if (code == MessageCode.COLLECTED) {
             this.deliverCOLLECTED(received);
         } else if (code == MessageCode.ACCEPT) {

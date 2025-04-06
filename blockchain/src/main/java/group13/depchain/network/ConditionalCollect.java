@@ -16,6 +16,7 @@ public class ConditionalCollect {
 
     private boolean collected;
     private byte[][] sigs;
+    private Boolean[] faulty;
     private List<Message> messages;
     private final int N;
     private final int f;
@@ -42,6 +43,7 @@ public class ConditionalCollect {
             throws SocketException {
         this.collected = false;
         this.sigs = new byte[1024][N];
+        this.faulty = new Boolean[N];
         this.messages = new ArrayList<Message>();
         this.N = N;
         this.f = (N - 1) / 3;
@@ -56,6 +58,9 @@ public class ConditionalCollect {
 
         for (int i = 0; i < N; i++)
             this.messages.add(Message.newBuilder().setCode(MessageCode.NULL).build());
+
+        for (int i = 0; i < N; ++i)
+            this.faulty[i] = false;
     }
 
     private synchronized void sendCollected(int ets) throws Exception {
@@ -75,13 +80,6 @@ public class ConditionalCollect {
 
     public synchronized void send(int process, Message message) throws Exception {
         byte[] ds = Util.ds(message.toByteArray(), this.privateKey);
-
-        // if (this.id == process) {
-        // this.messages.set(this.id, message);
-        // this.sigs[this.id] = ds;
-        // return;
-        // }
-
         DSMessage dsMessage =
                 DSMessage.newBuilder().setMessage(message).setDs(ByteString.copyFrom(ds)).build();
         Message.Builder builder = Message.newBuilder().setCode(MessageCode.DSMESSAGE)
@@ -119,7 +117,7 @@ public class ConditionalCollect {
         }
     }
 
-    public synchronized void deliverDS(Message received) throws Exception {
+    public synchronized Boolean deliverDS(Message received) throws Exception {
         MessageCode code = received.getCode();
         if (this.id == this.leaderId && code == MessageCode.DSMESSAGE && !this.collected) {
             try {
@@ -130,14 +128,27 @@ public class ConditionalCollect {
                 if (Util.verifyDS(message.toByteArray(), ds, this.publicKeys[sender])) {
                     this.messages.set(sender, message);
                     this.sigs[sender] = ds;
-                    System.out.println("[ConditionalCollect] Delivered DS");
+                    System.out.println("[ConditionalCollect] Delivered DS.");
+                } else {
+                    System.out.println("[ConditionalCollect] Signature verification failed.");
+                    // Mark this sender as faulty
+                    this.faulty[sender] = true;
+
+                    // If we have more faulty processes than we can tolerate, abort
+                    int faultyProcs = 0;
+                    for (Boolean f : this.faulty) {
+                        if (f)
+                            ++faultyProcs;
+                    }
+                    if (faultyProcs > f)
+                        return false;
                 }
 
                 if (countMessages(this.messages) < this.N - this.f || !predicate.C(this.messages))
-                    return;
+                    return true;
 
                 if (!this.startedTimer) {
-                    System.out.println("[ConditionalCollect] Starting timer");
+                    System.out.println("[ConditionalCollect] Starting timer.");
                     this.startedTimer = true;
                     timer.schedule(new TimerTask() {
                         @Override
@@ -152,9 +163,10 @@ public class ConditionalCollect {
                     }, 5000);
                 }
             } catch (InvalidProtocolBufferException e) {
-                return;
+                return true;
             }
         }
+        return true;
     }
 
     public synchronized List<Message> getMessages() {

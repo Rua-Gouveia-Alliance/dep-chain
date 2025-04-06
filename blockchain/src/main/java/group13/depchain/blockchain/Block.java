@@ -153,15 +153,16 @@ public class Block {
             return false;
 
         String prevHash = Base64.getEncoder().encodeToString(this.previousBlockHash);
-        String otherPrevHash = Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
+        String otherPrevHash =
+                Base64.getEncoder().encodeToString(other.getPreviousBlockHash().toByteArray());
         return Objects.equals(prevHash, otherPrevHash);
     }
 
     public BlockMessage toBlockMessage() {
-        BlockMessage.Builder messageBuilder = BlockMessage.newBuilder()
-                .setBlockHash(ByteString.copyFrom(this.blockHash))
-                .setPreviousBlockHash(ByteString.copyFrom(this.previousBlockHash))
-                .setIsNullBlock(this.isNullBlock);
+        BlockMessage.Builder messageBuilder =
+                BlockMessage.newBuilder().setBlockHash(ByteString.copyFrom(this.blockHash))
+                        .setPreviousBlockHash(ByteString.copyFrom(this.previousBlockHash))
+                        .setIsNullBlock(this.isNullBlock);
         for (Transaction tx : this.transactions) {
             TransactionMessage txMsg = Transaction.toTransactionMessage(tx);
             messageBuilder.addTransactions(txMsg);
@@ -171,7 +172,7 @@ public class Block {
 
     @Override
     public String toString() {
-        String str = "{ null: " + this.isNullBlock + ", txs: [ ";
+        String str = "{ null: " + this.isNullBlock + ", aborted: " + this.aborted + ", txs: [ ";
         for (Transaction tx : this.transactions)
             str += tx.toString() + " ";
         str += "]";

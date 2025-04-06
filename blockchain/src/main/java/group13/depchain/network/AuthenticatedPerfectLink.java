@@ -67,7 +67,6 @@ public class AuthenticatedPerfectLink {
                 this.keys[contents.getSender()]) || delivered.contains(recId))
             return null;
 
-        
         if (contents.getCode() == MessageCode.ACK) {
             sp2p.remove(received.getSender(), received.getSeq());
             return null;
