@@ -93,7 +93,7 @@ public class KeyManager {
 
     public static SecretKey[] generateSecretKeys(int id, int N) throws Exception {
         SecretKey[] Ks = new SecretKey[N];
-        for (int i = N; i > id; --i) {
+        for (int i = N - 1; i > id; --i) {
             Ks[i] = null;
         }
         for (int i = id; i > -1; --i) {
